@@ -1,34 +1,18 @@
 <script lang="ts">
 import ErrorAlert from "$lib/components/ErrorAlert.svelte";
-import type { File as GalleryFile } from "$lib/components/Gallery.svelte";
 import Gallery from "$lib/components/Gallery.svelte";
-import SignInButton from "$lib/components/SignInButton.svelte";
-import Upload from "$lib/components/Upload.svelte";
 import type { PageProps } from "./$types";
 
 let { data }: PageProps = $props();
 </script>
 
-<div class="prose mx-auto p-4">
-	<p>
-		LGTM画像が生成できます
-		<br />
-		Tenor等から直接ドラッグアンドドロップでも登録できます
-	</p>
-	{#if data.message !== undefined}
-		<ErrorAlert>{data.message}</ErrorAlert>
-	{/if}
-	{#if data.ghLogin && data.wkey}
-		<Upload />
-		<p class="text-sm opacity-60">ログイン中: GitHub ({data.ghLogin})</p>
-	{:else}
-		<p>作成機能を利用するにはログインしてください</p>
-		<div class="not-prose">
-			<SignInButton />
-		</div>
-	{/if}
-</div>
-<div role="tablist" class="tabs tabs-border tabs-xl mb-3">
+{#if data.message !== undefined}
+	<div class="px-4"><ErrorAlert>{data.message}</ErrorAlert></div>
+{/if}
+
+<!-- px-4 to match the header: one margin down the whole page, rather than a
+     narrow column of prose sitting over a full-bleed gallery. -->
+<div role="tablist" class="tabs tabs-border tabs-xl mb-3 px-4">
 	<input
 		type="radio"
 		name="my_tabs_1"
@@ -46,7 +30,9 @@ let { data }: PageProps = $props();
 		{#if data.wkey}
 			<Gallery fileNameList={data.myImages} userKey={data.wkey} find={true} />
 		{:else}
-			<p>作成機能を利用するにはログインしてください</p>
+			<p class="py-6 opacity-60">
+				GitHubでログインすると、作った画像がここに並びます。
+			</p>
 		{/if}
 	</div>
 	<span class="tab mr-4"></span>

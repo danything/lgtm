@@ -4,19 +4,18 @@ import { setMessage } from "$lib/stores/toast.svelte";
 
 let isGenerating = $state(false);
 let inputRef: HTMLInputElement | undefined = $state();
+// dragenter and dragleave fire again for every element the pointer crosses, so
+// a plain boolean flickers as the file moves over the page. Counting entries
+// against leaves is what actually answers "is a file still over the window".
+let depth = $state(0);
+const dragging = $derived(depth > 0);
 
-async function onSelectImage() {
-	if (!inputRef?.files) return;
+async function upload(files: FileList) {
 	try {
 		isGenerating = true;
 		const formData = new FormData();
-		for (const file of inputRef.files) {
-			formData.append("files", file);
-		}
-		const res = await fetch("/lgtm/upload", {
-			method: "POST",
-			body: formData,
-		});
+		for (const file of files) formData.append("files", file);
+		const res = await fetch("/lgtm/upload", { method: "POST", body: formData });
 		if (!res.ok) throw new Error("upload failed");
 		setMessage("画像生成完了");
 	} catch {
@@ -28,39 +27,77 @@ async function onSelectImage() {
 	}
 }
 
-function onDrop(ev: DragEvent) {
-	ev.preventDefault();
-	if (!isGenerating && ev.dataTransfer?.files && inputRef) {
-		inputRef.files = ev.dataTransfer.files;
-		onSelectImage();
-	}
-}
-function onDragOver(ev: DragEvent) {
-	ev.preventDefault();
-}
+const hasFiles = (event: DragEvent) =>
+	event.dataTransfer?.types.includes("Files") ?? false;
 
 $effect(() => {
-	document.addEventListener("drop", onDrop);
-	document.addEventListener("dragover", onDragOver);
+	const enter = (event: DragEvent) => {
+		if (hasFiles(event)) depth += 1;
+	};
+	const leave = (event: DragEvent) => {
+		if (hasFiles(event)) depth -= 1;
+	};
+	// Without this the browser navigates to the file instead of handing it over.
+	const over = (event: DragEvent) => {
+		if (hasFiles(event)) event.preventDefault();
+	};
+	const drop = (event: DragEvent) => {
+		depth = 0;
+		if (!hasFiles(event)) return;
+		event.preventDefault();
+		const files = event.dataTransfer?.files;
+		if (!isGenerating && files?.length) upload(files);
+	};
+	document.addEventListener("dragenter", enter);
+	document.addEventListener("dragleave", leave);
+	document.addEventListener("dragover", over);
+	document.addEventListener("drop", drop);
 	return () => {
-		document.removeEventListener("drop", onDrop);
-		document.removeEventListener("dragover", onDragOver);
+		document.removeEventListener("dragenter", enter);
+		document.removeEventListener("dragleave", leave);
+		document.removeEventListener("dragover", over);
+		document.removeEventListener("drop", drop);
 	};
 });
 </script>
 
-<div>
-	<input
-		bind:this={inputRef}
-		accept="image/*"
-		type="file"
-		class="file-input w-full max-w-xs"
-		disabled={isGenerating}
-		multiple
-		onchange={onSelectImage}
-	/>
+<input
+	bind:this={inputRef}
+	accept="image/*"
+	type="file"
+	class="hidden"
+	multiple
+	onchange={() => {
+		if (inputRef?.files?.length) upload(inputRef.files);
+	}}
+/>
+<button
+	type="button"
+	class="btn btn-primary btn-sm"
+	disabled={isGenerating}
+	onclick={() => inputRef?.click()}
+>
 	{#if isGenerating}
-		<progress class="progress w-52 ml-4"></progress>
-		<span class="ml-4">画像生成中</span>
+		<span class="loading loading-spinner loading-xs"></span>
+		生成中
+	{:else}
+		画像を追加
 	{/if}
-</div>
+</button>
+
+{#if dragging}
+	<!--
+		The whole window is the drop target, which is only discoverable at the one
+		moment it matters -- so say it then, and say nothing the rest of the time.
+		pointer-events-none keeps this from swallowing the drop it is announcing.
+	-->
+	<div
+		class="fixed inset-0 z-50 grid place-items-center bg-base-100/80 pointer-events-none"
+	>
+		<div
+			class="rounded-2xl border-4 border-dashed border-primary px-12 py-10 text-xl font-bold"
+		>
+			ここにドロップ
+		</div>
+	</div>
+{/if}

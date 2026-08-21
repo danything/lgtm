@@ -2,7 +2,9 @@
 import { browser } from "$app/environment";
 import { afterNavigate, beforeNavigate } from "$app/navigation";
 import { updated } from "$app/state";
+import SignInButton from "$lib/components/SignInButton.svelte";
 import Toast from "$lib/components/Toast.svelte";
+import Upload from "$lib/components/Upload.svelte";
 import "../app.css";
 
 let { children, data } = $props();
@@ -45,17 +47,21 @@ if (browser) {
 	<meta name="description" content="LGTM画像を生成できます" />
 </svelte:head>
 
-<nav class="navbar px-0">
-	<div class="page-container flex items-center">
-		<div class="flex-1">
-			<a class="btn btn-ghost text-xl" href="/">LGTM</a>
-		</div>
-		{#if data.isAdmin}
-			<div class="flex-none">
-				<a class="btn btn-ghost btn-sm" href="/admin">管理</a>
-			</div>
-		{/if}
-	</div>
+<nav class="navbar gap-2 px-4">
+	<a class="btn btn-ghost px-2 text-xl" href="/">LGTM</a>
+	{#if data.ghLogin}
+		<!-- The one thing this site is for, one click from anywhere in it. -->
+		<Upload />
+	{/if}
+	<div class="flex-1"></div>
+	{#if data.ghLogin}
+		<span class="hidden text-sm opacity-60 sm:inline">{data.ghLogin}</span>
+	{:else}
+		<SignInButton />
+	{/if}
+	{#if data.isAdmin}
+		<a class="btn btn-ghost btn-sm" href="/admin">管理</a>
+	{/if}
 </nav>
 <main>
 	{@render children()}
