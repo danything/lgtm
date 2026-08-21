@@ -85,7 +85,11 @@ export type File = { name: string; isDeletable: boolean };
 	});
 </script>
 
-<div class="flex flex-wrap gap-3 overflow-x-hidden py-3">
+<!-- No overflow clipping here: overflow-x on a box clips both axes, which cut
+     the hover scale off at the ends of each row. A tile is capped at max-w-lg,
+     so growing 5% reaches at most ~13px a side, and the page's own px-4 has
+     room for it. -->
+<div class="flex flex-wrap gap-3 py-3">
 	{#each items as file (file.name)}
 		<!--
 			The preview and delete buttons overlay the tile, so they have to be
@@ -96,7 +100,7 @@ export type File = { name: string; isDeletable: boolean };
 			a plain positioned element and let the image be the button.
 		-->
 		<div
-			class="relative grow h-64 max-w-lg rounded-lg overflow-hidden bg-primary-content hover:scale-105 transition-all"
+			class="group/tile relative grow h-64 max-w-lg rounded-lg overflow-hidden bg-primary-content hover:scale-105 hover:z-10 transition-all"
 		>
 			<!-- The tile copies. Getting the markdown is why anyone is here, so it
 			     is the whole picture rather than a button on top of it; the other
@@ -120,6 +124,30 @@ export type File = { name: string; isDeletable: boolean };
 					height="960"
 				/>
 			</button>
+			<!-- Clicking the picture copies, which nothing about a picture says.
+			     Hovering is the moment to mention it, and the only moment it is
+			     worth covering the image to do so. pointer-events-none so the
+			     thing it describes still receives the click. -->
+			<div
+				class="pointer-events-none absolute inset-0 grid place-items-center gap-1 bg-black/50 opacity-0 transition-opacity group-hover/tile:opacity-100"
+			>
+				<span class="flex items-center gap-2 font-bold text-white">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-5 w-5"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<title>Copy</title>
+						<path
+							stroke-width="2"
+							d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"
+						/>
+					</svg>
+					クリックでリンクをコピー
+				</span>
+			</div>
 			<!-- One row, so the two never have to know each other's size: delete
 			     sits to the left, and an armed delete grows leftwards from the
 			     right edge rather than pushing its neighbour along. -->
