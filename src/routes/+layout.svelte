@@ -53,6 +53,13 @@ if (browser) {
 		<!-- The one thing this site is for, one click from anywhere in it. -->
 		<Upload />
 	{/if}
+	<!-- Dropping a file is the good way in and the one nothing announces, so it
+	     is said here, in the space the toolbar was not using. Desktop only, and
+	     not as a compromise: dragging out of Tenor is not a thing a phone can
+	     do, so there is nobody being kept from it. -->
+	<span class="hidden text-sm opacity-60 lg:inline">
+		Tenor等の画像は、このページに直接ドラッグ&amp;ドロップでも追加できます
+	</span>
 	<div class="flex-1"></div>
 	{#if data.ghLogin}
 		<span class="hidden text-sm opacity-60 sm:inline">{data.ghLogin}</span>
