@@ -75,9 +75,18 @@ if (browser) {
 	<!-- Dropping a file is the good way in and the one nothing announces, so it
 	     is said here, in the space the toolbar was not using. Desktop only, and
 	     not as a compromise: dragging out of Tenor is not a thing a phone can
-	     do, so there is nobody being kept from it. -->
+	     do, so there is nobody being kept from it.
+
+	     Signed out it has to say something else. The drop handler lives inside
+	     Upload, which is not on the page at all then, so a file let go over it
+	     would simply do nothing -- and an invitation that quietly fails is
+	     worse than no invitation. -->
 	<span class="hidden text-sm opacity-60 lg:inline">
-		Tenor等の画像は、このページに直接ドラッグ&amp;ドロップでも追加できます
+		{#if data.ghLogin}
+			Tenor等の画像は、このページに直接ドラッグ&amp;ドロップでも追加できます
+		{:else}
+			GitHubでログインすると、Tenor等の画像を直接ドラッグ&amp;ドロップで登録できます
+		{/if}
 	</span>
 	<div class="flex-1"></div>
 	{#if data.ghLogin}
