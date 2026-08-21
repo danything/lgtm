@@ -7,7 +7,6 @@ export const load: PageServerLoad = ({ cookies }) => {
 	return {
 		message: cookies.get("message"),
 		wkey,
-		recentImages: get(1, false, wkey),
-		myImages: wkey ? get(1, true, wkey) : [],
+		images: get(1, false, wkey),
 	};
 };

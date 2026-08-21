@@ -1,7 +1,7 @@
 <script lang="ts">
 import { browser } from "$app/environment";
 import { afterNavigate, beforeNavigate } from "$app/navigation";
-import { updated } from "$app/state";
+import { page, updated } from "$app/state";
 import SignInButton from "$lib/components/SignInButton.svelte";
 import Toast from "$lib/components/Toast.svelte";
 import Upload from "$lib/components/Upload.svelte";
@@ -49,6 +49,25 @@ if (browser) {
 
 <nav class="navbar gap-2 px-4">
 	<a class="btn btn-ghost px-2 text-xl" href="/">LGTM</a>
+	<!-- Links rather than the radio-and-panel tabs daisyUI draws for free: those
+	     only work while the labels and the panels share a parent, and the point
+	     of moving them up here is that they no longer do. Being routes is the
+	     better answer anyway -- "自分" is now somewhere you can link to, and
+	     reloading no longer drops you back on 新着. -->
+	<div role="tablist" class="tabs tabs-border">
+		<a
+			role="tab"
+			class="tab {page.url.pathname === '/' ? 'tab-active' : ''}"
+			href="/">新着</a
+		>
+		{#if data.ghLogin}
+			<a
+				role="tab"
+				class="tab {page.url.pathname === '/mine' ? 'tab-active' : ''}"
+				href="/mine">自分</a
+			>
+		{/if}
+	</div>
 	{#if data.ghLogin}
 		<!-- The one thing this site is for, one click from anywhere in it. -->
 		<Upload />
