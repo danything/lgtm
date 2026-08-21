@@ -1,0 +1,25 @@
+services:
+  lgtm:
+    build:
+      target: base
+    volumes:
+      - .:/usr/src/app
+    command: dev
+    networks:
+      - docker_default
+      - default
+    environment:
+      - PROTOCOL_HEADER=x-forwarded-proto
+      - HOST_HEADER=x-forwarded-host
+      - HASH=
+      - GITHUB_CLIENT_ID=
+      - GITHUB_CLIENT_SECRET=
+      - ADMIN_GH_LOGINS=
+    labels:
+      - "traefik.http.routers.lgtm.rule=Host(`l.localhost`)"
+      - "traefik.http.routers.lgtm.tls=true"
+
+networks:
+  docker_default:
+    external: true
+    name: docker_default

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lgtm
+  namespace: lgtm
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls.certresolver: mydnschallenge
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - l.doany.io
+  rules:
+    - host: l.doany.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lgtm
+                port:
+                  number: 3000

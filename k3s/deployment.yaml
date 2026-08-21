@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lgtm
+  namespace: lgtm
+spec:
+  replicas: 1
+  # Bring the replacement up and let it pass its readiness probe before the old
+  # pod goes away, so the site never drops to zero serving pods. The images and
+  # database PVCs are ReadWriteOnce, but local-path pins them to a node and the
+  # scheduler follows, so both pods land there and can mount them together.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # Hold the new pod ready for a moment before retiring the old one, so a pod
+  # that starts and immediately falls over doesn't take the old one with it.
+  minReadySeconds: 10
+  selector:
+    matchLabels:
+      app: lgtm
+  template:
+    metadata:
+      labels:
+        app: lgtm
+    spec:
+      # The volumes are created by whichever uid the image ran as at the time,
+      # and that moves with the base image. Naming the group here has the
+      # kubelet line the volumes up on mount, so nothing has to be fixed by
+      # hand on the node. OnRootMismatch skips the walk when the top-level
+      # directory already matches, rather than re-chowning every image on
+      # every start.
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      # preStop (5s) + SHUTDOWN_TIMEOUT (30s, honoured by server.js), plus room.
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: lgtm
+          image: ghcr.io/danything/lgtm:latest
+          ports:
+            - containerPort: 3000
+          # Endpoint removal and SIGTERM race each other. Sleeping first lets
+          # Traefik stop routing here before the server stops accepting, so
+          # in-flight clicks aren't answered with a connection reset.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            periodSeconds: 5
+            failureThreshold: 2
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            periodSeconds: 10
+            failureThreshold: 6
+          env:
+            # The origin comes from the request rather than a fixed ORIGIN, so
+            # that this works the same behind Traefik as it does locally.
+            - name: PROTOCOL_HEADER
+              value: x-forwarded-proto
+            - name: HOST_HEADER
+              value: x-forwarded-host
+            # Who can open /admin. Named here rather than stored in the database
+            # so that nobody can grant it to themselves by signing up, and so
+            # that a granted admin can always be undone. Empty means nobody.
+            - name: ADMIN_GH_LOGINS
+              value: "5ym"
+            # Read by server.js: finish serving in-flight requests before
+            # exiting. Must stay under terminationGracePeriodSeconds above.
+            - name: SHUTDOWN_TIMEOUT
+              value: "30"
+            - name: HASH
+              valueFrom:
+                secretKeyRef:
+                  name: lgtm-secrets
+                  key: hash
+            - name: GITHUB_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: lgtm-secrets
+                  key: github-client-id
+            - name: GITHUB_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: lgtm-secrets
+                  key: github-client-secret
+          volumeMounts:
+            - name: lgtm-images
+              mountPath: /usr/src/app/images
+            - name: lgtm-db
+              mountPath: /usr/src/app/data
+            - name: lgtm-assets
+              mountPath: /usr/src/app/build/client/_app/immutable
+      volumes:
+        - name: lgtm-images
+          persistentVolumeClaim:
+            claimName: lgtm-images
+        - name: lgtm-db
+          persistentVolumeClaim:
+            claimName: lgtm-db
+        - name: lgtm-assets
+          persistentVolumeClaim:
+            claimName: lgtm-assets
