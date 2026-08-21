@@ -4,8 +4,13 @@ import { PER_PAGE } from "../paging";
 import db from "./db";
 import { generateUniqueKey } from "./key";
 
-export async function create(files: File[], userKey: string) {
+/** The file names written, in the order they were given. */
+export async function create(
+	files: File[],
+	userKey: string,
+): Promise<string[]> {
 	const lgtmSource = await Bun.file("assets/lgtm.webp").arrayBuffer();
+	const created: string[] = [];
 	for (const file of files) {
 		const fileName = `${await generateUniqueKey((k) => Bun.file(`images/${k}.webp`).exists())}.webp`;
 		const buffer = await sharp(await file.arrayBuffer(), { animated: true })
@@ -42,7 +47,9 @@ export async function create(files: File[], userKey: string) {
 			"INSERT INTO lImage (fileName, userKey, createdAt) VALUES (?, ?, ?)",
 			[fileName, userKey, Date.now()],
 		);
+		created.push(fileName);
 	}
+	return created;
 }
 
 export function deleteFile(fileName: string, userKey: string): boolean {

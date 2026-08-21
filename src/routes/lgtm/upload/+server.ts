@@ -12,6 +12,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	const files = formData
 		.getAll("files")
 		.filter((f): f is File => f instanceof File);
-	await create(files, userKey);
-	return json({ ok: true });
+	const created = await create(files, userKey);
+	return json({ ok: true, files: created });
 };

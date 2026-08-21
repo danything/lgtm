@@ -1,31 +1,29 @@
 <script lang="ts">
-import { setMessage } from "$lib/stores/toast.svelte";
+import { copyAndReport } from "$lib/clipboard";
 
 let {
 	// A function rather than a string: callers build their text from
 	// `location`, which does not exist while the page renders on the server.
 	text,
-	message = "リンクをコピーしました",
 	onClick = () => {},
 	isVisible = true,
 }: {
 	text: () => string;
-	message?: string;
 	onClick?: () => void;
 	isVisible?: boolean;
 } = $props();
 
 function onClickCopy(e: MouseEvent) {
 	e.stopPropagation();
-	navigator.clipboard.writeText(text());
-	setMessage(message);
+	copyAndReport(text(), "リンクをコピーしました", "コピーできませんでした");
 	onClick();
 }
 </script>
 
 <button
 	type="button"
-	class={`btn btn-square ${isVisible ? "" : "invisible group-hover/item:visible"}`}
+	aria-label="リンクをコピー"
+	class={`btn btn-square btn-primary ${isVisible ? "" : "invisible group-hover/item:visible"}`}
 	onclick={onClickCopy}
 >
 	<svg

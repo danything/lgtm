@@ -1,5 +1,6 @@
 <script lang="ts">
 import { invalidateAll } from "$app/navigation";
+import { copyText, lgtmMarkdown } from "$lib/clipboard";
 import { setMessage } from "$lib/stores/toast.svelte";
 
 let isGenerating = $state(false);
@@ -17,7 +18,19 @@ async function upload(files: FileList) {
 		for (const file of files) formData.append("files", file);
 		const res = await fetch("/lgtm/upload", { method: "POST", body: formData });
 		if (!res.ok) throw new Error("upload failed");
-		setMessage("画像生成完了");
+		const { files: created }: { files: string[] } = await res.json();
+		// Straight onto the clipboard: what you came here for is the markdown,
+		// and the alternative is finding the new tile and clicking it.
+		const copied =
+			created.length > 0 &&
+			(await copyText(created.map(lgtmMarkdown).join("\n")));
+		setMessage(
+			copied
+				? created.length > 1
+					? `${created.length}件のリンクをコピーしました`
+					: "リンクをコピーしました"
+				: "画像生成完了",
+		);
 	} catch {
 		setMessage("画像生成失敗");
 	} finally {
@@ -91,11 +104,11 @@ $effect(() => {
 		moment it matters -- so say it then, and say nothing the rest of the time.
 		pointer-events-none keeps this from swallowing the drop it is announcing.
 	-->
-	<div
-		class="fixed inset-0 z-50 grid place-items-center bg-base-100/80 pointer-events-none"
-	>
+	<div class="pointer-events-none fixed inset-0 z-50 bg-base-100/80 p-4">
+		<!-- The frame is the window, because the window is what accepts the drop.
+		     A box in the middle of it said the opposite. -->
 		<div
-			class="rounded-2xl border-4 border-dashed border-primary px-12 py-10 text-xl font-bold"
+			class="grid h-full w-full place-items-center rounded-3xl border-4 border-dashed border-primary text-2xl font-bold"
 		>
 			ここにドロップ
 		</div>

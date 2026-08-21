@@ -12,8 +12,9 @@ let {
 } = $props();
 
 // Deleting an image cannot be undone, and the button sits on top of one in a
-// grid of them. The first click only arms it -- the bin turns into a tick --
-// and the second one means it.
+// grid of them. The first click only arms it -- the bin turns into a tick and
+// the button grows a ring -- and the second one means it. Red throughout,
+// because it has to stay legible on top of an arbitrary picture.
 let armed = $state(false);
 let deleting = $state(false);
 
@@ -58,9 +59,9 @@ async function onClickDelete(e: MouseEvent) {
 
 <button
 	type="button"
-	class={`btn btn-square ${armed ? "btn-error" : ""} ${
-		isVisible || armed || deleting ? "" : "invisible group-hover/item:visible"
-	}`}
+	class={`btn btn-square btn-error transition-transform ${
+		armed ? "scale-110 ring-4 ring-error/50" : ""
+	} ${isVisible || armed || deleting ? "" : "invisible group-hover/item:visible"}`}
 	disabled={deleting}
 	aria-label={armed ? "削除を確定" : "削除"}
 	onclick={onClickDelete}

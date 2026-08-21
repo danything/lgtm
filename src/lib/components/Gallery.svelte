@@ -4,9 +4,11 @@ export type File = { name: string; isDeletable: boolean };
 
 <script lang="ts">
 	import { untrack } from "svelte";
+	import { copyAndReport, lgtmMarkdown } from "$lib/clipboard";
 	import { PER_PAGE } from "$lib/paging";
 	import CopyButton from "./CopyButton.svelte";
 	import DeleteButton from "./DeleteButton.svelte";
+	import PreviewButton from "./PreviewButton.svelte";
 
 	let {
 		fileNameList,
@@ -42,11 +44,6 @@ export type File = { name: string; isDeletable: boolean };
 	}
 	function closeDialog() {
 		dialog?.close();
-	}
-
-	// Read at click time, when `location` exists.
-	function lgtmMarkdown(fileName: string) {
-		return `![LGTM](${window.location.origin}/images/${fileName})`;
 	}
 
 	function removeItem(fileName: string) {
@@ -91,7 +88,7 @@ export type File = { name: string; isDeletable: boolean };
 <div class="flex flex-wrap gap-3 overflow-x-hidden py-3">
 	{#each items as file (file.name)}
 		<!--
-			The copy and delete buttons overlay the tile, so they have to be
+			The preview and delete buttons overlay the tile, so they have to be
 			positioned against it -- but they cannot be *inside* it while the tile
 			is itself a <button>. Nested buttons are invalid, and the parser
 			resolves them by closing the outer one early, which left the tile empty
@@ -101,9 +98,18 @@ export type File = { name: string; isDeletable: boolean };
 		<div
 			class="relative grow h-64 max-w-lg rounded-lg overflow-hidden bg-primary-content hover:scale-105 transition-all"
 		>
+			<!-- The tile copies. Getting the markdown is why anyone is here, so it
+			     is the whole picture rather than a button on top of it; the other
+			     thing you might have wanted is the button. -->
 			<button
 				class="block h-full w-full cursor-pointer"
-				onclick={() => onClickItem(file)}
+				aria-label="リンクをコピー"
+				onclick={() =>
+					copyAndReport(
+						lgtmMarkdown(file.name),
+						"リンクをコピーしました",
+						"コピーできませんでした",
+					)}
 				type="button"
 			>
 				<img
@@ -115,8 +121,8 @@ export type File = { name: string; isDeletable: boolean };
 				/>
 			</button>
 			<!-- One row, so the two never have to know each other's size: delete
-			     sits to the left of copy, and an armed delete grows leftwards
-			     from the right edge rather than pushing copy along. -->
+			     sits to the left, and an armed delete grows leftwards from the
+			     right edge rather than pushing its neighbour along. -->
 			<div class="absolute right-3 top-3 flex gap-2">
 				{#if file.isDeletable}
 					<DeleteButton
@@ -124,7 +130,7 @@ export type File = { name: string; isDeletable: boolean };
 						onDeleted={() => removeItem(file.name)}
 					/>
 				{/if}
-				<CopyButton text={() => lgtmMarkdown(file.name)} />
+				<PreviewButton onOpen={() => onClickItem(file)} />
 			</div>
 		</div>
 	{/each}
