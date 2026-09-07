@@ -3,6 +3,10 @@ kind: PersistentVolumeClaim
 metadata:
   name: lgtm-images
   namespace: lgtm
+  annotations:
+    # ファイルとして k8up に取らせる(apps/k8up の Schedule が拾う)。
+    # 書き換わっても部分的に古いだけで壊れない類い。
+    k8up.io/backup: "true"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -16,6 +20,10 @@ kind: PersistentVolumeClaim
 metadata:
   name: lgtm-db
   namespace: lgtm
+  annotations:
+    # **DB はファイルとして取らない。** Pod 側の k8up.io/backupcommand が
+    # 整合したコピーを標準出力に出しているので、そちらだけで足りる。
+    k8up.io/backup: "false"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -31,6 +39,10 @@ kind: PersistentVolumeClaim
 metadata:
   name: lgtm-assets
   namespace: lgtm
+  annotations:
+    # ファイルとして k8up に取らせる(apps/k8up の Schedule が拾う)。
+    # 書き換わっても部分的に古いだけで壊れない類い。
+    k8up.io/backup: "true"
 spec:
   accessModes:
     - ReadWriteOnce
