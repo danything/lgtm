@@ -3,8 +3,6 @@ kind: PersistentVolumeClaim
 metadata:
   name: lgtm-images
   namespace: lgtm
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes:
     - ReadWriteOnce
@@ -18,8 +16,6 @@ kind: PersistentVolumeClaim
 metadata:
   name: lgtm-db
   namespace: lgtm
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes:
     - ReadWriteOnce
@@ -35,8 +31,6 @@ kind: PersistentVolumeClaim
 metadata:
   name: lgtm-assets
   namespace: lgtm
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes:
     - ReadWriteOnce
