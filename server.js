@@ -1,5 +1,6 @@
+import { createReadStream, statSync } from "node:fs";
 import http from "node:http";
-import sirv from "sirv";
+import { extname, join, normalize } from "node:path";
 import { handler } from "./handler.js";
 
 // A rollout runs two pods at once and every build renames its chunks, so a page
@@ -9,36 +10,74 @@ import { handler } from "./handler.js";
 // static handler it would otherwise use builds its file list once at startup,
 // so the older pod never sees a file the newer one dropped in after it booted.
 //
-// Hence this entry point instead of the adapter's. Everything below mirrors
-// the adapter's own sirv call in handler.js -- same precompression, same
-// Cache-Control -- and differs by one flag: `dev` makes sirv look a file up on
-// every request rather than indexing once. It forces `no-store` along with
-// that, which is exactly wrong for content-hashed filenames, so setHeaders puts
-// the real header back. There is no adapter option or environment variable that
-// reaches that flag, which is the whole reason this file exists.
+// Hence this entry point instead of the adapter's: anything under the immutable
+// prefix is looked up on disk on every request, and only a miss goes on to
+// SvelteKit. Filenames are content hashes, so the cache header can be forever.
+// (This used to be sirv with `dev: true`; the lookup-per-request is the only
+// thing it was doing here, and precompression is off in the adapter, so the
+// brotli/gzip options it was given had nothing to serve.)
 const PREFIX = "/_app/immutable";
-const assets = sirv(`build/client${PREFIX}`, {
-	dev: true,
-	brotli: true,
-	gzip: true,
-	setHeaders: (res) =>
-		res.setHeader("cache-control", "public,max-age=31536000,immutable"),
-});
+const ROOT = `build/client${PREFIX}`;
+const TYPES = {
+	".js": "text/javascript; charset=utf-8",
+	".mjs": "text/javascript; charset=utf-8",
+	".css": "text/css; charset=utf-8",
+	".json": "application/json",
+	".map": "application/json",
+	".woff2": "font/woff2",
+	".woff": "font/woff",
+	".ttf": "font/ttf",
+	".svg": "image/svg+xml",
+	".png": "image/png",
+	".jpg": "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif": "image/gif",
+	".webp": "image/webp",
+	".avif": "image/avif",
+	".wasm": "application/wasm",
+	".txt": "text/plain; charset=utf-8",
+};
+
+/** True if the request was answered from the shared asset directory. */
+function serveImmutable(req, res) {
+	const url = req.url ?? "";
+	if (!url.startsWith(`${PREFIX}/`)) return false;
+	if (req.method !== "GET" && req.method !== "HEAD") return false;
+	let rel;
+	try {
+		rel = normalize(decodeURIComponent(url.slice(PREFIX.length).split("?")[0]));
+	} catch {
+		return false;
+	}
+	// normalize resolves "a/../b" but leaves a leading "..": never above ROOT.
+	if (rel.split("/").includes("..")) return false;
+	const file = join(ROOT, rel);
+	let stat;
+	try {
+		stat = statSync(file);
+	} catch {
+		return false;
+	}
+	if (!stat.isFile()) return false;
+	res.writeHead(200, {
+		"content-type": TYPES[extname(file)] ?? "application/octet-stream",
+		"content-length": stat.size,
+		"cache-control": "public,max-age=31536000,immutable",
+	});
+	if (req.method === "HEAD") {
+		res.end();
+		return true;
+	}
+	createReadStream(file).pipe(res);
+	return true;
+}
 
 const host = process.env.HOST ?? "0.0.0.0";
 const port = Number(process.env.PORT ?? 3000);
 const shutdownTimeout = Number(process.env.SHUTDOWN_TIMEOUT ?? 30);
 
 const server = http.createServer((req, res) => {
-	const url = req.url ?? "";
-	if (!url.startsWith(`${PREFIX}/`)) return handler(req, res);
-	// sirv resolves against its own root, so the prefix comes off -- and goes
-	// back on for the miss case, where SvelteKit gets the request after all.
-	req.url = url.slice(PREFIX.length);
-	assets(req, res, () => {
-		req.url = url;
-		handler(req, res);
-	});
+	if (!serveImmutable(req, res)) handler(req, res);
 });
 
 // Repeated from the adapter's index.js rather than inherited: a custom server
