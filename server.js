@@ -68,7 +68,13 @@ function serveImmutable(req, res) {
 		res.end();
 		return true;
 	}
-	createReadStream(file).pipe(res);
+	// The stat above and the read below are two moments, and the pruning in the
+	// entrypoint can remove a file between them. pipe() does not forward the
+	// source's error, and an unhandled one takes the whole process down -- the
+	// headers are already out, so all that is left is to drop the connection.
+	createReadStream(file)
+		.on("error", () => res.destroy())
+		.pipe(res);
 	return true;
 }
 
