@@ -9,7 +9,6 @@
       },
       "devDependencies": {
         "@biomejs/biome": "^2.5.5",
-        "@fontsource/biz-udpgothic": "^5.3.0",
         "@sveltejs/adapter-node": "^5.5.7",
         "@sveltejs/kit": "^2.63.0",
         "@sveltejs/vite-plugin-svelte": "^7.1.2",
@@ -55,8 +54,6 @@
     "@emnapi/runtime": ["@emnapi/runtime@1.11.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-vgj7R3y3Wgx24IQaGPA/R6YFXLHVMOZ0uVEyIQPaWs+rd1AzfEMXlAC22FYwO1XkKR6NPsq7mUandH8oIRdZFw=="],
 
     "@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA=="],
-
-    "@fontsource/biz-udpgothic": ["@fontsource/biz-udpgothic@5.3.0", "", {}, "sha512-uBcdaC2/Bg7GEhzWSb2REs8azL1ys+KpI8TmPnJa2xtaD8DVMgsRbtIcEss8xjN5KRtp8E0+LFbG43FhkWZdPw=="],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 
