@@ -7,10 +7,16 @@ let { data }: PageProps = $props();
 </script>
 
 {#if data.message !== undefined}
-	<div class="px-4"><ErrorAlert>{data.message}</ErrorAlert></div>
+	<div class="wrap"><ErrorAlert>{data.message}</ErrorAlert></div>
 {/if}
 
-<!-- px-4 to match the header: one margin down the whole page. -->
-<div class="px-4">
+<!-- 左右の余白はヘッダーと同じ 1rem: ページ全体で一本の余白にする。 -->
+<div class="wrap">
 	<Gallery fileNameList={data.images} userKey={data.wkey} find={false} />
 </div>
+
+<style>
+.wrap {
+	padding-inline: 1rem;
+}
+</style>

@@ -86,11 +86,10 @@ export type File = { name: string; isDeletable: boolean };
 	});
 </script>
 
-<!-- No overflow clipping here: overflow-x on a box clips both axes, which cut
-     the hover scale off at the ends of each row. A tile is capped at max-w-lg,
-     so growing 5% reaches at most ~13px a side, and the page's own px-4 has
-     room for it. -->
-<div class="flex flex-wrap gap-3 py-3">
+<!-- ここでは overflow を切らない: 箱に overflow-x を付けると両方の軸が切られ、
+     行の端でホバーの拡大が欠けた。タイルの幅は 32rem 止まりなので 5% 伸びても
+     片側 13px ほどで、ページ側の左右 1rem の余白に収まる。 -->
+<div class="tiles">
 	{#each items as file (file.name)}
 		<!--
 			The preview and delete buttons overlay the tile, so they have to be
@@ -100,14 +99,12 @@ export type File = { name: string; isDeletable: boolean };
 			and threw the image and the overlays out into the row. Keep the tile as
 			a plain positioned element and let the image be the button.
 		-->
-		<div
-			class="group/tile relative grow h-64 max-w-lg rounded-lg overflow-hidden bg-primary-content hover:scale-105 hover:z-10 transition-all"
-		>
+		<div class="tile">
 			<!-- The tile copies. Getting the markdown is why anyone is here, so it
 			     is the whole picture rather than a button on top of it; the other
 			     thing you might have wanted is the button. -->
 			<button
-				class="block h-full w-full cursor-pointer"
+				class="pic"
 				aria-label="リンクをコピー"
 				onclick={() =>
 					copyAndReport(
@@ -120,7 +117,6 @@ export type File = { name: string; isDeletable: boolean };
 				<img
 					src={`/images/${file.name}`}
 					alt="LGTM"
-					class="h-full w-full object-cover"
 					width="960"
 					height="960"
 				/>
@@ -129,13 +125,10 @@ export type File = { name: string; isDeletable: boolean };
 			     Hovering is the moment to mention it, and the only moment it is
 			     worth covering the image to do so. pointer-events-none so the
 			     thing it describes still receives the click. -->
-			<div
-				class="pointer-events-none absolute inset-0 grid place-items-center gap-1 bg-black/50 opacity-0 transition-opacity group-hover/tile:opacity-100"
-			>
-				<span class="flex items-center gap-2 font-bold text-white">
+			<div class="veil">
+				<span>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						class="h-5 w-5"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -152,7 +145,7 @@ export type File = { name: string; isDeletable: boolean };
 			<!-- One row, so the two never have to know each other's size: delete
 			     sits to the left, and an armed delete grows leftwards from the
 			     right edge rather than pushing its neighbour along. -->
-			<div class="absolute right-3 top-3 flex gap-2">
+			<div class="acts">
 				{#if file.isDeletable}
 					<DeleteButton
 						fileName={file.name}
@@ -164,16 +157,15 @@ export type File = { name: string; isDeletable: boolean };
 		</div>
 	{/each}
 </div>
-<dialog bind:this={dialog} class="modal">
+<dialog bind:this={dialog}>
 	<!--
-		modal-box caps itself at 32rem, which left the preview barely wider than a
-		tile. Let it grow to the viewport instead, and size the image below so a
-		tall one is bounded by height rather than overflowing.
+		既定の箱は幅 32rem で止まり、拡大してもタイルと大差ない大きさだった。画面まで
+		伸ばせるようにして、縦長の画像は下の img 側で高さのほうを効かせて収める。
 	-->
-	<div class="modal-box w-auto max-w-[92vw] p-2">
-		<div class="relative group/item">
+	<div class="panel box">
+		<div class="shot">
 			{#if diaImage}
-				<div class="absolute right-3 top-3 flex gap-2">
+				<div class="acts">
 					{#if diaImage.isDeletable}
 						<DeleteButton
 							fileName={diaImage.name}
@@ -209,14 +201,127 @@ export type File = { name: string; isDeletable: boolean };
 					style={previewW && previewH
 						? `width: min(86vw, calc(88vh * ${previewW / previewH}))`
 						: undefined}
-					class="block h-auto max-h-[88vh] max-w-[86vw]"
 				/>
 			{:else}
-				<div class="skeleton h-full w-full"></div>
+				<div class="blank"></div>
 			{/if}
 		</div>
 	</div>
-	<form method="dialog" class="modal-backdrop">
+	<form method="dialog" class="back">
 		<button type="button" onclick={closeDialog}>close</button>
 	</form>
 </dialog>
+
+<style>
+/* ---- 一覧 ---- */
+.tiles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	padding-block: 0.75rem;
+}
+.tile {
+	position: relative;
+	flex-grow: 1;
+	max-width: 32rem;
+	height: 16rem;
+	overflow: hidden;
+	border-radius: var(--pico-border-radius);
+	background: var(--ui-base-200);
+	transition: all 0.15s;
+}
+.tile:hover {
+	z-index: 10;
+	transform: scale(1.05);
+}
+/* 画像そのものがボタン。ボタンらしい枠や地の色は要らない */
+.pic {
+	display: block;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	background: transparent;
+	cursor: pointer;
+}
+.pic img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.veil {
+	pointer-events: none;
+	display: grid;
+	position: absolute;
+	inset: 0;
+	place-items: center;
+	gap: 0.25rem;
+	background: var(--ui-veil);
+	color: var(--ui-veil-color);
+	opacity: 0;
+	transition: opacity 0.15s;
+}
+.tile:hover .veil {
+	opacity: 1;
+}
+.veil span {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-weight: 700;
+}
+.veil svg {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+.acts {
+	display: flex;
+	position: absolute;
+	top: 0.75rem;
+	right: 0.75rem;
+	gap: 0.5rem;
+}
+
+/* ---- 拡大表示 ---- */
+.box {
+	z-index: 1;
+	position: relative;
+	width: auto;
+	max-width: 92vw;
+	padding: 0.5rem;
+}
+.shot {
+	position: relative;
+}
+.shot img {
+	display: block;
+	max-width: 86vw;
+	max-height: 88vh;
+	height: auto;
+}
+.blank {
+	width: 100%;
+	height: 100%;
+	border-radius: var(--pico-border-radius);
+	background: var(--ui-base-200);
+}
+/* 箱の外をクリックすると閉じる。全面に敷いた透明なボタンがその当たり判定 */
+.back {
+	position: absolute;
+	inset: 0;
+	margin: 0;
+}
+.back button {
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	background: transparent;
+	color: transparent;
+	cursor: pointer;
+}
+</style>

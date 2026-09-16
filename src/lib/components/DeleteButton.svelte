@@ -59,19 +59,18 @@ async function onClickDelete(e: MouseEvent) {
 
 <button
 	type="button"
-	class={`btn btn-square btn-error transition-transform ${
-		armed ? "scale-110 ring-4 ring-error/50" : ""
-	} ${isVisible || armed || deleting ? "" : "invisible group-hover/item:visible"}`}
+	class="square"
+	class:armed
+	class:hover-only={!(isVisible || armed || deleting)}
 	disabled={deleting}
 	aria-label={armed ? "削除を確定" : "削除"}
 	onclick={onClickDelete}
 >
 	{#if deleting}
-		<span class="loading loading-spinner loading-sm"></span>
+		<span class="spin"></span>
 	{:else if armed}
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
-			class="h-6 w-6"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
@@ -82,7 +81,6 @@ async function onClickDelete(e: MouseEvent) {
 	{:else}
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
-			class="h-6 w-6"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
@@ -95,3 +93,35 @@ async function onClickDelete(e: MouseEvent) {
 		</svg>
 	{/if}
 </button>
+
+<style>
+svg {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+/*
+ * 任意の写真の上に置かれるので、色が透ける作りにはしない。塗りつぶした赤に、
+ * 塗りつぶしたボタンと同じ前景色を載せる
+ */
+button {
+	border-color: var(--ui-err);
+	background: var(--ui-err);
+	color: var(--pico-primary-inverse);
+	transition: transform 0.15s;
+}
+button:hover:not(:disabled) {
+	border-color: var(--ui-err);
+	background: var(--ui-err);
+}
+.armed {
+	transform: scale(1.1);
+	box-shadow: 0 0 0 4px color-mix(in srgb, var(--ui-err) 50%, transparent);
+}
+/* 拡大表示では写真の上に重なるので、ホバーしている間だけ出す */
+.hover-only {
+	visibility: hidden;
+}
+:global(.shot:hover) .hover-only {
+	visibility: visible;
+}
+</style>

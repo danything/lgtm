@@ -23,12 +23,12 @@ function onClickCopy(e: MouseEvent) {
 <button
 	type="button"
 	aria-label="リンクをコピー"
-	class={`btn btn-square btn-primary ${isVisible ? "" : "invisible group-hover/item:visible"}`}
+	class="square"
+	class:hover-only={!isVisible}
 	onclick={onClickCopy}
 >
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
-		class="h-6 w-6"
 		fill="none"
 		viewBox="0 0 24 24"
 		stroke="currentColor"
@@ -40,3 +40,17 @@ function onClickCopy(e: MouseEvent) {
 		/>
 	</svg>
 </button>
+
+<style>
+svg {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+/* 拡大表示では写真の上に重なるので、ホバーしている間だけ出す */
+.hover-only {
+	visibility: hidden;
+}
+:global(.shot:hover) .hover-only {
+	visibility: visible;
+}
+</style>
