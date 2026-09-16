@@ -78,7 +78,6 @@ $effect(() => {
 	bind:this={inputRef}
 	accept="image/*"
 	type="file"
-	class="hidden"
 	multiple
 	onchange={() => {
 		if (inputRef?.files?.length) upload(inputRef.files);
@@ -86,12 +85,12 @@ $effect(() => {
 />
 <button
 	type="button"
-	class="btn btn-primary btn-sm"
+	class="mini"
 	disabled={isGenerating}
 	onclick={() => inputRef?.click()}
 >
 	{#if isGenerating}
-		<span class="loading loading-spinner loading-xs"></span>
+		<span class="spin"></span>
 		生成中
 	{:else}
 		画像を追加
@@ -100,17 +99,44 @@ $effect(() => {
 
 {#if dragging}
 	<!--
-		The whole window is the drop target, which is only discoverable at the one
-		moment it matters -- so say it then, and say nothing the rest of the time.
-		pointer-events-none keeps this from swallowing the drop it is announcing.
+		ウィンドウ全体が受け皿で、それが分かるのは要る瞬間だけ -- なのでその時だけ
+		言い、残りの時間は何も言わない。pointer-events: none は、案内しているその
+		ドロップ自体をこの幕が飲み込まないようにするため。
 	-->
-	<div class="pointer-events-none fixed inset-0 z-50 bg-base-100/80 p-4">
-		<!-- The frame is the window, because the window is what accepts the drop.
-		     A box in the middle of it said the opposite. -->
-		<div
-			class="grid h-full w-full place-items-center rounded-3xl border-4 border-dashed border-primary text-2xl font-bold"
-		>
-			ここにドロップ
-		</div>
+	<div class="veil">
+		<!-- 枠はウィンドウそのもの。受け皿がウィンドウだからで、真ん中に箱を置くと
+		     逆のことを言ってしまう。 -->
+		<div class="frame">ここにドロップ</div>
 	</div>
 {/if}
+
+<style>
+/* ボタンから開くので、入力欄そのものは出さない */
+input {
+	display: none;
+}
+button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+}
+.veil {
+	pointer-events: none;
+	z-index: 50;
+	position: fixed;
+	inset: 0;
+	background: color-mix(in srgb, var(--pico-background-color) 80%, transparent);
+	padding: 1rem;
+}
+.frame {
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: 100%;
+	border: 4px dashed var(--pico-primary);
+	border-radius: 1.5rem;
+	font-size: 1.5rem;
+	font-weight: 700;
+}
+</style>

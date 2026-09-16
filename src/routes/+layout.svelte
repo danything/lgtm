@@ -5,7 +5,7 @@ import { page, updated } from "$app/state";
 import SignInButton from "$lib/components/SignInButton.svelte";
 import Toast from "$lib/components/Toast.svelte";
 import Upload from "$lib/components/Upload.svelte";
-import "../app.css";
+import "../app.scss";
 
 let { children, data } = $props();
 
@@ -47,23 +47,21 @@ if (browser) {
 	<meta name="description" content="LGTM画像を生成できます" />
 </svelte:head>
 
-<nav class="navbar gap-2 px-4">
-	<a class="btn btn-ghost px-2 text-xl" href="/">LGTM</a>
-	<!-- Links rather than the radio-and-panel tabs daisyUI draws for free: those
-	     only work while the labels and the panels share a parent, and the point
-	     of moving them up here is that they no longer do. Being routes is the
-	     better answer anyway -- "自分" is now somewhere you can link to, and
-	     reloading no longer drops you back on 新着. -->
-	<div role="tablist" class="tabs tabs-border">
-		<a
-			role="tab"
-			class="tab {page.url.pathname === '/' ? 'tab-active' : ''}"
-			href="/">新着</a
+<nav class="cluster">
+	<a class="button ghost logo" href="/">LGTM</a>
+	<!-- ラジオボタンとパネルを組にした作りではなくリンクにしてある: あれはラベルと
+	     パネルが同じ親にいる間しか動かないが、ここへ持ち上げた時点で同じ親ではない。
+	     そもそもルートにするほうが筋が良い -- 「自分」がリンクできる場所になり、
+	     再読み込みで 新着 に戻されることもなくなる。 -->
+	<div role="tablist" class="tabs">
+		<a role="tab" class="tab" class:on={page.url.pathname === "/"} href="/"
+			>新着</a
 		>
 		{#if data.ghLogin}
 			<a
 				role="tab"
-				class="tab {page.url.pathname === '/mine' ? 'tab-active' : ''}"
+				class="tab"
+				class:on={page.url.pathname === "/mine"}
 				href="/mine">自分</a
 			>
 		{/if}
@@ -81,24 +79,77 @@ if (browser) {
 	     Upload, which is not on the page at all then, so a file let go over it
 	     would simply do nothing -- and an invitation that quietly fails is
 	     worse than no invitation. -->
-	<span class="hidden text-sm opacity-60 lg:inline">
+	<span class="muted small hint">
 		{#if data.ghLogin}
 			Tenor等の画像は、このページに直接ドラッグ&amp;ドロップでも追加できます
 		{:else}
 			GitHubでログインすると、Tenor等の画像を直接ドラッグ&amp;ドロップで登録できます
 		{/if}
 	</span>
-	<div class="flex-1"></div>
+	<div class="grow"></div>
 	{#if data.ghLogin}
-		<span class="hidden text-sm opacity-60 sm:inline">{data.ghLogin}</span>
+		<span class="muted small who">{data.ghLogin}</span>
 	{:else}
 		<SignInButton />
 	{/if}
 	{#if data.isAdmin}
-		<a class="btn btn-ghost btn-sm" href="/admin">管理</a>
+		<a class="button ghost mini" href="/admin">管理</a>
 	{/if}
 </nav>
 <main>
 	{@render children()}
 </main>
 <Toast />
+
+<style>
+nav {
+	min-height: 4rem;
+	padding: 0.5rem 1rem;
+}
+.logo {
+	padding-inline: 0.5rem;
+	font-size: 1.25rem;
+}
+
+/* 下線で現在地を示すタブ */
+.tabs {
+	display: flex;
+	align-items: center;
+}
+.tab {
+	display: inline-flex;
+	align-items: center;
+	height: 2.5rem;
+	border-bottom: 2px solid transparent;
+	padding-inline: 1rem;
+	color: var(--ui-muted);
+	font-size: 0.875rem;
+	font-weight: 700;
+	text-decoration: none;
+}
+.tab:hover {
+	color: var(--pico-color);
+}
+.tab.on {
+	border-bottom-color: currentColor;
+	color: var(--pico-color);
+}
+
+/* ドラッグ&ドロップの案内は横幅に余裕のある画面だけ */
+.hint {
+	display: none;
+}
+@media (min-width: 1024px) {
+	.hint {
+		display: inline;
+	}
+}
+.who {
+	display: none;
+}
+@media (min-width: 640px) {
+	.who {
+		display: inline;
+	}
+}
+</style>

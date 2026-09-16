@@ -4,12 +4,12 @@ import type { Snippet } from "svelte";
 let { children }: { children: Snippet } = $props();
 </script>
 
-<div role="alert" class="alert alert-error mb-4">
+<div role="alert" class="note err">
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
-		class="h-6 w-6 shrink-0 stroke-current"
 		fill="none"
 		viewBox="0 0 24 24"
+		stroke="currentColor"
 	>
 		<title>Danger</title>
 		<path
@@ -21,3 +21,16 @@ let { children }: { children: Snippet } = $props();
 	</svg>
 	<span>{@render children()}</span>
 </div>
+
+<style>
+.note {
+	align-items: center;
+	margin-bottom: 1rem;
+	color: var(--ui-err);
+}
+svg {
+	flex-shrink: 0;
+	width: 1.5rem;
+	height: 1.5rem;
+}
+</style>

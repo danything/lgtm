@@ -9,15 +9,9 @@ function onClick(e: MouseEvent) {
 }
 </script>
 
-<button
-	type="button"
-	aria-label="拡大して表示"
-	class="btn btn-square btn-primary"
-	onclick={onClick}
->
+<button type="button" aria-label="拡大して表示" class="square" onclick={onClick}>
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
-		class="h-6 w-6"
 		fill="none"
 		viewBox="0 0 24 24"
 		stroke="currentColor"
@@ -31,3 +25,10 @@ function onClick(e: MouseEvent) {
 		/>
 	</svg>
 </button>
+
+<style>
+svg {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+</style>
