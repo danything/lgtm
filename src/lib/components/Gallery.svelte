@@ -10,7 +10,7 @@ export type File = {
 <script lang="ts">
 	import { untrack } from "svelte";
 	import { copyAndReport, lgtmMarkdown } from "$lib/clipboard";
-	import { PER_PAGE } from "$lib/paging";
+	import { FIRST_LIMIT, PER_PAGE } from "$lib/paging";
 	import CopyButton from "./CopyButton.svelte";
 	import DeleteButton from "./DeleteButton.svelte";
 	import PreviewButton from "./PreviewButton.svelte";
@@ -38,8 +38,10 @@ export type File = {
 	// Plain variables rather than $state: nothing renders from them, and the
 	// effect below resets them, so tracking them would make it depend on its
 	// own writes.
-	let page = 2;
 	let isGetting = false;
+	// Bumped whenever the list is reset, so a fetch that was already in flight
+	// cannot append its answer to the list that replaced the one it was for.
+	let generation = 0;
 	let isDone = false;
 	let sentinel: HTMLDivElement | undefined = $state();
 	let diaImage = $state<File>();
@@ -74,11 +76,18 @@ export type File = {
 	async function loadMore(observer: IntersectionObserver) {
 		if (isGetting || isDone) return;
 		isGetting = true;
-		const res = await fetch(`/lgtm/images?page=${page}&find=${find}`);
+		const started = generation;
+		const res = await fetch(
+			`/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}`,
+		);
 		const pageList: File[] = await res.json();
-		items = [...items, ...pageList];
-		page += 1;
-		// A short page is the last one.
+		if (started !== generation) return;
+		// Someone uploading in the meantime pushes everything down, so the
+		// start of this batch can repeat the end of the last one. The list is
+		// keyed by name, and a repeated key is an error, not a duplicate tile.
+		const have = new Set(items.map((f) => f.name));
+		items = [...items, ...pageList.filter((f) => !have.has(f.name))];
+		// A short answer is the last one.
 		isDone = pageList.length < PER_PAGE;
 		isGetting = false;
 		// The observer only reports changes. If this page was too short to push
@@ -92,9 +101,9 @@ export type File = {
 
 	$effect(() => {
 		items = [...fileNameList];
-		page = 2;
+		generation += 1;
 		isGetting = false;
-		isDone = fileNameList.length < PER_PAGE;
+		isDone = fileNameList.length < FIRST_LIMIT;
 		if (!sentinel) return;
 		// Watches a marker after the last tile instead of measuring the page on
 		// every scroll event; the margin starts the fetch 300px before it shows.

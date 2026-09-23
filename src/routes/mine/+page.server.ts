@@ -1,4 +1,5 @@
 import { redirect } from "@sveltejs/kit";
+import { FIRST_LIMIT } from "$lib/paging";
 import { get } from "$lib/server/lgtm";
 import type { PageServerLoad } from "./$types";
 
@@ -7,5 +8,5 @@ export const load: PageServerLoad = ({ cookies }) => {
 	// Nothing to be on this page for, and the header does not offer it either.
 	if (wkey === undefined) redirect(307, "/");
 
-	return { wkey, images: get(1, true, wkey) };
+	return { wkey, images: get(0, FIRST_LIMIT, true, wkey) };
 };

@@ -1,6 +1,5 @@
 import { unlinkSync } from "node:fs";
 import sharp from "sharp";
-import { PER_PAGE } from "../paging";
 import db from "./db";
 import { generateUniqueKey } from "./key";
 
@@ -118,8 +117,17 @@ export async function backfillImageSizes(): Promise<void> {
 	}
 }
 
-export function get(page: number, find: boolean, userKey?: string) {
-	const offset = (page - 1) * PER_PAGE;
+/**
+ * Counted by position rather than by page, so the gallery can ask for "what
+ * comes after the ones I have". With fixed pages, deleting a tile shifted
+ * every later row up one and the next page silently skipped a picture.
+ */
+export function get(
+	offset: number,
+	limit: number,
+	find: boolean,
+	userKey?: string,
+) {
 	type Row = {
 		fileName: string;
 		userKey: string;
@@ -131,12 +139,12 @@ export function get(page: number, find: boolean, userKey?: string) {
 				.query<Row, [string, number, number]>(
 					"SELECT fileName, userKey, width, height FROM lImage WHERE userKey = ? ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
 				)
-				.all(userKey ?? "", PER_PAGE, offset)
+				.all(userKey ?? "", limit, offset)
 		: db()
 				.query<Row, [number, number]>(
 					"SELECT fileName, userKey, width, height FROM lImage ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
 				)
-				.all(PER_PAGE, offset);
+				.all(limit, offset);
 
 	return rows.map((image) => ({
 		name: image.fileName,
