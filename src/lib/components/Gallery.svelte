@@ -30,6 +30,10 @@ export type File = {
 	// invalidateAll. Reading the prop through untrack says that capturing just
 	// this first value is the point, rather than an oversight the compiler
 	// should flag.
+	// Roughly the first screen on a desktop; a phone shows fewer, and loading
+	// a couple of extra up front costs less than delaying the ones in view.
+	const EAGER = 6;
+
 	let items = $state<File[]>(untrack(() => fileNameList));
 	// Plain variables rather than $state: nothing renders from them, and the
 	// effect below resets them, so tracking them would make it depend on its
@@ -109,7 +113,7 @@ export type File = {
      行の端でホバーの拡大が欠けた。タイルの幅は 32rem 止まりなので 5% 伸びても
      片側 13px ほどで、ページ側の左右 1rem の余白に収まる。 -->
 <div class="tiles">
-	{#each items as file (file.name)}
+	{#each items as file, i (file.name)}
 		<!--
 			The preview and delete buttons overlay the tile, so they have to be
 			positioned against it -- but they cannot be *inside* it while the tile
@@ -136,13 +140,15 @@ export type File = {
 				<!-- The tile's width comes from the picture's proportions, so they
 				     have to be known before it loads. Guessing a square here made
 				     every tile start 256px wide and jump once the image arrived,
-				     reflowing the whole row. -->
+				     reflowing the whole row.
+				     The first few are in view on arrival, and lazy would hold them
+				     back until layout; everything after waits for the scroll. -->
 				<img
 					src={`/images/${file.name}`}
 					alt="LGTM"
 					width={file.width}
 					height={file.height}
-					loading="lazy"
+					loading={i < EAGER ? "eager" : "lazy"}
 					decoding="async"
 					{@attach markLoaded}
 				/>
