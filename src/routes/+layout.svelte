@@ -113,21 +113,26 @@ if (browser) {
 
 <style>
 /*
- * ヘッダーの部品(ロゴ・タブ・ボタン)は全部同じ 2rem の高さにそろえる。
- * ばらばらだと一番背の高いもの(ロゴ 2.5rem、ログインボタン 43px)でヘッダーが
- * 決まり、上下の余白もログイン前後で変わっていた。上下の余白 0.5rem を足して
- * ヘッダーは常に 48px。
+ * ヘッダーの部品(ロゴ・タブ・ボタン)は全部同じ高さにそろえる。ばらばらだと
+ * 一番背の高いものでヘッダーの高さが決まり、ログイン前後で変わっていた。
+ *
+ * 下の余白は付けない。ヘッダーには地の色も線もないので、その下余白と一覧の
+ * 上余白がひと続きの空白に見える。上 8px・下 8+12px だと下だけ 2.5 倍空いて
+ * 見えていたので、上下とも一覧側の 0.75rem 一本にする。
  */
 nav {
-	--nav-control: 2rem;
-	padding: 0.5rem 1rem;
+	--nav-control: 2.5rem;
+	padding: 0.75rem 1rem 0;
 }
 nav :global(:is(a.button, button)) {
 	height: var(--nav-control);
 	min-height: var(--nav-control);
 	padding-block: 0;
+	padding-inline: 0.875rem;
+	font-size: 0.875rem;
 }
-.logo {
+/* 上のボタン共通の指定より強くしないと、ロゴまで本文の大きさになる */
+nav a.button.logo {
 	padding-inline: 0.5rem;
 	font-size: 1.25rem;
 }
