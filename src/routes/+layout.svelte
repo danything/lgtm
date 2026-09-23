@@ -42,9 +42,17 @@ if (browser) {
 }
 </script>
 
+<!-- サイト共通の分だけ。タイトルと説明文はページごとに書く: 同じものを全ページに
+     出すと検索結果で見分けが付かず、ログインが要るページまで拾われる。 -->
 <svelte:head>
-	<title>LGTM</title>
-	<meta name="description" content="LGTM画像を生成できます" />
+	<meta property="og:site_name" content="LGTM" />
+	<meta property="og:type" content="website" />
+	<meta property="og:locale" content="ja_JP" />
+	<meta property="og:image" content={`${page.url.origin}/og.png`} />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta property="og:image:alt" content="LGTM - Looks Good To Me" />
+	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 <nav class="cluster">

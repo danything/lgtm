@@ -5,6 +5,12 @@ import type { PageProps } from "./$types";
 let { data }: PageProps = $props();
 </script>
 
+<!-- ログインした本人にしか中身がないページなので、検索結果には出さない -->
+<svelte:head>
+	<title>自分の画像｜LGTM</title>
+	<meta name="robots" content="noindex" />
+</svelte:head>
+
 <div class="wrap">
 	{#if data.images.length === 0}
 		<!-- Somebody who has just signed in is looking at the one empty space on

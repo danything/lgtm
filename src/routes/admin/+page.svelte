@@ -73,6 +73,11 @@ const dateTime = new Intl.DateTimeFormat("ja-JP", {
 });
 </script>
 
+<svelte:head>
+	<title>管理｜LGTM</title>
+	<meta name="robots" content="noindex" />
+</svelte:head>
+
 <div class="page">
 	<div class="counts">
 		<div class="count">

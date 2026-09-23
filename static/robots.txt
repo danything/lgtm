@@ -1,3 +1,6 @@
-# allow crawling everything by default
+# /mine と /admin はここで止めず noindex で外す: 止めるとクローラが noindex を読めない
 User-agent: *
-Disallow:
+Disallow: /api/
+Disallow: /lgtm/
+
+Sitemap: https://l.doany.io/sitemap.xml
