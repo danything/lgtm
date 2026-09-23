@@ -44,6 +44,20 @@ export type File = {
 		dialog?.close();
 	}
 
+	// Marks the picture once its bytes are in, which ends the tile's pulse and
+	// fades the image up. A server-rendered image can finish before hydration
+	// attaches the listener, so one that is already complete counts at once.
+	// An error counts too: a broken file is not going to arrive by waiting.
+	function markLoaded(img: HTMLImageElement) {
+		const done = () => img.classList.add("loaded");
+		if (img.complete) {
+			done();
+			return;
+		}
+		img.addEventListener("load", done, { once: true });
+		img.addEventListener("error", done, { once: true });
+	}
+
 	function removeItem(fileName: string) {
 		items = items.filter((f) => f.name !== fileName);
 	}
@@ -120,6 +134,7 @@ export type File = {
 					alt="LGTM"
 					width={file.width}
 					height={file.height}
+					{@attach markLoaded}
 				/>
 			</button>
 			<!-- Clicking the picture copies, which nothing about a picture says.
@@ -227,6 +242,16 @@ export type File = {
 	background: var(--ui-base-200);
 	transition: all 0.15s;
 }
+/* 読み込み中はタイルの地の色を明滅させてスケルトンにする */
+.tile:has(img:not(:global(.loaded))) {
+	animation: tile-pulse 1.5s ease-in-out infinite;
+}
+/* 上に乗るボタンまで明滅しないよう、動かすのは地の色だけ */
+@keyframes tile-pulse {
+	50% {
+		background: var(--ui-base-300);
+	}
+}
 .tile:hover {
 	z-index: 10;
 	transform: scale(1.05);
@@ -247,6 +272,19 @@ export type File = {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+	opacity: 0;
+	transition: opacity 0.3s;
+}
+.pic img:global(.loaded) {
+	opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+	.tile {
+		animation: none !important;
+	}
+	.pic img {
+		transition: none;
+	}
 }
 .veil {
 	pointer-events: none;
