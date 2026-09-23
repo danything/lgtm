@@ -31,8 +31,13 @@ export type File = {
 	// this first value is the point, rather than an oversight the compiler
 	// should flag.
 	let items = $state<File[]>(untrack(() => fileNameList));
-	let page = $state(2);
-	let isGetting = $state(false);
+	// Plain variables rather than $state: nothing renders from them, and the
+	// effect below resets them, so tracking them would make it depend on its
+	// own writes.
+	let page = 2;
+	let isGetting = false;
+	let isDone = false;
+	let sentinel: HTMLDivElement | undefined = $state();
 	let diaImage = $state<File>();
 	let dialog: HTMLDialogElement | undefined = $state();
 
@@ -62,20 +67,22 @@ export type File = {
 		items = items.filter((f) => f.name !== fileName);
 	}
 
-	async function handleScroll() {
-		if (
-			document.body.scrollHeight - (window.innerHeight + window.scrollY) <
-				300 &&
-			!isGetting
-		) {
-			isGetting = true;
-			const res = await fetch(`/lgtm/images?page=${page}&find=${find}`);
-			const pageList: File[] = await res.json();
-			items = [...items, ...pageList];
-			page += 1;
-			// A short page is the last one, so leaving this set stops the scroll
-			// handler from asking again.
-			if (pageList.length === PER_PAGE) isGetting = false;
+	async function loadMore(observer: IntersectionObserver) {
+		if (isGetting || isDone) return;
+		isGetting = true;
+		const res = await fetch(`/lgtm/images?page=${page}&find=${find}`);
+		const pageList: File[] = await res.json();
+		items = [...items, ...pageList];
+		page += 1;
+		// A short page is the last one.
+		isDone = pageList.length < PER_PAGE;
+		isGetting = false;
+		// The observer only reports changes. If this page was too short to push
+		// the sentinel out of reach it stays intersecting and nothing fires
+		// again, so observe it afresh, which reports where it stands now.
+		if (!isDone && sentinel) {
+			observer.unobserve(sentinel);
+			observer.observe(sentinel);
 		}
 	}
 
@@ -83,17 +90,18 @@ export type File = {
 		items = [...fileNameList];
 		page = 2;
 		isGetting = false;
-		// handleScroll reads isGetting and page, which this effect has just
-		// written. Tracking those reads made the effect depend on its own
-		// writes: the first pass set isGetting = true, that invalidated the
-		// effect, and the re-run reset page back to 2 and fetched again. Only
-		// fileNameList above is meant to re-trigger this, so kick the initial
-		// fill off outside the tracking scope.
-		untrack(handleScroll);
-		window.addEventListener("scroll", handleScroll);
-		return () => {
-			window.removeEventListener("scroll", handleScroll);
-		};
+		isDone = fileNameList.length < PER_PAGE;
+		if (!sentinel) return;
+		// Watches a marker after the last tile instead of measuring the page on
+		// every scroll event; the margin starts the fetch 300px before it shows.
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((e) => e.isIntersecting)) loadMore(observer);
+			},
+			{ rootMargin: "0px 0px 300px 0px" },
+		);
+		observer.observe(sentinel);
+		return () => observer.disconnect();
 	});
 </script>
 
@@ -134,6 +142,8 @@ export type File = {
 					alt="LGTM"
 					width={file.width}
 					height={file.height}
+					loading="lazy"
+					decoding="async"
 					{@attach markLoaded}
 				/>
 			</button>
@@ -173,6 +183,7 @@ export type File = {
 		</div>
 	{/each}
 </div>
+<div bind:this={sentinel}></div>
 <dialog bind:this={dialog}>
 	<!--
 		既定の箱は幅 32rem で止まり、拡大してもタイルと大差ない大きさだった。画面まで
