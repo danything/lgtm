@@ -256,7 +256,8 @@ export type File = {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.75rem;
-	padding-block: 0.5rem 0.75rem;
+	/* ヘッダーとの間もタイル同士の間と同じ幅にする */
+	padding-block: 0.75rem;
 }
 .tile {
 	position: relative;

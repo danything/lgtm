@@ -95,13 +95,15 @@ if (browser) {
 		{/if}
 	</span>
 	<div class="grow"></div>
+	<!-- 管理は名前より左。右端に置くと、管理者かどうかで名前の位置が変わり、
+	     同じ画面なのに人によって並びが違って見える。 -->
+	{#if data.isAdmin}
+		<a class="button ghost mini" href="/admin">管理</a>
+	{/if}
 	{#if data.ghLogin}
 		<span class="muted small who">{data.ghLogin}</span>
 	{:else}
 		<SignInButton />
-	{/if}
-	{#if data.isAdmin}
-		<a class="button ghost mini" href="/admin">管理</a>
 	{/if}
 </nav>
 <main>
@@ -110,14 +112,22 @@ if (browser) {
 <Toast />
 
 <style>
-/* 高さはタブ(2.5rem)に合わせる。ロゴがボタンの既定の上下余白で 52px になり、
-   ヘッダーが見た目より 1 段高くなって下に余白が空いて見えていた */
+/*
+ * ヘッダーの部品(ロゴ・タブ・ボタン)は全部同じ 2rem の高さにそろえる。
+ * ばらばらだと一番背の高いもの(ロゴ 2.5rem、ログインボタン 43px)でヘッダーが
+ * 決まり、上下の余白もログイン前後で変わっていた。上下の余白 0.5rem を足して
+ * ヘッダーは常に 48px。
+ */
 nav {
-	min-height: 3rem;
-	padding: 0.25rem 1rem;
+	--nav-control: 2rem;
+	padding: 0.5rem 1rem;
+}
+nav :global(:is(a.button, button)) {
+	height: var(--nav-control);
+	min-height: var(--nav-control);
+	padding-block: 0;
 }
 .logo {
-	padding-block: 0;
 	padding-inline: 0.5rem;
 	font-size: 1.25rem;
 }
@@ -130,7 +140,7 @@ nav {
 .tab {
 	display: inline-flex;
 	align-items: center;
-	height: 2.5rem;
+	height: var(--nav-control);
 	border-bottom: 2px solid transparent;
 	padding-inline: 1rem;
 	color: var(--ui-muted);
