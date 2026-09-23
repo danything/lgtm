@@ -29,9 +29,22 @@ export default function db(): DatabaseType {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			fileName TEXT NOT NULL UNIQUE,
 			userKey TEXT NOT NULL,
-			createdAt INTEGER NOT NULL
+			createdAt INTEGER NOT NULL,
+			width INTEGER,
+			height INTEGER
 		)
 	`);
+	// The gallery needs each picture's proportions before it loads, or every
+	// tile starts square and jumps to its real width once the bytes arrive.
+	// Tables made before this carry no size; backfillImageSizes fills them in.
+	const columns = instance
+		.query<{ name: string }, []>("PRAGMA table_info(lImage)")
+		.all()
+		.map((c) => c.name);
+	if (!columns.includes("width")) {
+		instance.run("ALTER TABLE lImage ADD COLUMN width INTEGER");
+		instance.run("ALTER TABLE lImage ADD COLUMN height INTEGER");
+	}
 	instance.run("CREATE INDEX IF NOT EXISTS lImage_userKey ON lImage(userKey)");
 	// Admin handed out from the admin page. ADMIN_GH_LOGINS stays the root of
 	// it: that cannot be revoked from inside the app, so a mistake here is

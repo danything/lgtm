@@ -44,8 +44,14 @@ export async function create(
 			])
 			.toFile(`images/${fileName}`);
 		db().run(
-			"INSERT INTO lImage (fileName, userKey, createdAt) VALUES (?, ?, ?)",
-			[fileName, userKey, Date.now()],
+			"INSERT INTO lImage (fileName, userKey, createdAt, width, height) VALUES (?, ?, ?, ?, ?)",
+			[
+				fileName,
+				userKey,
+				Date.now(),
+				metadata.width ?? null,
+				metadata.height ?? null,
+			],
 		);
 		created.push(fileName);
 	}
@@ -86,22 +92,56 @@ export function deleteAllImages(userKey: string): number {
 	return rows.length;
 }
 
+/**
+ * Reads the size off disk for rows stored before sizes were recorded. Opened
+ * without animated, as create() does, so an animation reports one frame
+ * rather than the whole strip.
+ */
+export async function backfillImageSizes(): Promise<void> {
+	const rows = db()
+		.query<{ fileName: string }, []>(
+			"SELECT fileName FROM lImage WHERE width IS NULL",
+		)
+		.all();
+	for (const { fileName } of rows) {
+		try {
+			const { width, height } = await sharp(`images/${fileName}`).metadata();
+			db().run("UPDATE lImage SET width = ?, height = ? WHERE fileName = ?", [
+				width,
+				height,
+				fileName,
+			]);
+		} catch {
+			// A missing or unreadable file keeps its NULLs; the gallery falls
+			// back to a square for it, as it did for everything before.
+		}
+	}
+}
+
 export function get(page: number, find: boolean, userKey?: string) {
 	const offset = (page - 1) * PER_PAGE;
+	type Row = {
+		fileName: string;
+		userKey: string;
+		width: number | null;
+		height: number | null;
+	};
 	const rows = find
 		? db()
-				.query<{ fileName: string; userKey: string }, [string, number, number]>(
-					"SELECT fileName, userKey FROM lImage WHERE userKey = ? ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
+				.query<Row, [string, number, number]>(
+					"SELECT fileName, userKey, width, height FROM lImage WHERE userKey = ? ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
 				)
 				.all(userKey ?? "", PER_PAGE, offset)
 		: db()
-				.query<{ fileName: string; userKey: string }, [number, number]>(
-					"SELECT fileName, userKey FROM lImage ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
+				.query<Row, [number, number]>(
+					"SELECT fileName, userKey, width, height FROM lImage ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
 				)
 				.all(PER_PAGE, offset);
 
 	return rows.map((image) => ({
 		name: image.fileName,
 		isDeletable: image.userKey === userKey,
+		width: image.width ?? 960,
+		height: image.height ?? 960,
 	}));
 }

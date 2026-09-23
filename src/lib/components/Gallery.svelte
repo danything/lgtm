@@ -1,5 +1,10 @@
 <script lang="ts" module>
-export type File = { name: string; isDeletable: boolean };
+export type File = {
+	name: string;
+	isDeletable: boolean;
+	width: number;
+	height: number;
+};
 </script>
 
 <script lang="ts">
@@ -30,14 +35,6 @@ export type File = { name: string; isDeletable: boolean };
 	let isGetting = $state(false);
 	let diaImage = $state<File>();
 	let dialog: HTMLDialogElement | undefined = $state();
-	// Filled in from the preview image once it loads; see the dialog below for
-	// why its own proportions are needed to size it. Deliberately not cleared
-	// when the dialog opens: reopening the same picture leaves src untouched, so
-	// no load event follows to put the numbers back, and the preview would fall
-	// back to the raw file size. Picking a different one does change src, and
-	// its load event overwrites these.
-	let previewW = $state(0);
-	let previewH = $state(0);
 
 	function onClickItem(file: File) {
 		diaImage = file;
@@ -114,11 +111,15 @@ export type File = { name: string; isDeletable: boolean };
 					)}
 				type="button"
 			>
+				<!-- The tile's width comes from the picture's proportions, so they
+				     have to be known before it loads. Guessing a square here made
+				     every tile start 256px wide and jump once the image arrived,
+				     reflowing the whole row. -->
 				<img
 					src={`/images/${file.name}`}
 					alt="LGTM"
-					width="960"
-					height="960"
+					width={file.width}
+					height={file.height}
 				/>
 			</button>
 			<!-- Clicking the picture copies, which nothing about a picture says.
@@ -194,13 +195,9 @@ export type File = { name: string; isDeletable: boolean };
 				<img
 					src={`/images/${diaImage.name}`}
 					alt="LGTM"
-					width="960"
-					height="960"
-					bind:naturalWidth={previewW}
-					bind:naturalHeight={previewH}
-					style={previewW && previewH
-						? `width: min(86vw, calc(88vh * ${previewW / previewH}))`
-						: undefined}
+					width={diaImage.width}
+					height={diaImage.height}
+					style={`width: min(86vw, calc(88vh * ${diaImage.width / diaImage.height}))`}
 				/>
 			{:else}
 				<div class="blank"></div>
