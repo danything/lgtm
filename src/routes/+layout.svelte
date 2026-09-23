@@ -113,8 +113,8 @@ if (browser) {
 /* 高さはタブ(2.5rem)に合わせる。ロゴがボタンの既定の上下余白で 52px になり、
    ヘッダーが見た目より 1 段高くなって下に余白が空いて見えていた */
 nav {
-	min-height: 3.5rem;
-	padding: 0.5rem 1rem;
+	min-height: 3rem;
+	padding: 0.25rem 1rem;
 }
 .logo {
 	padding-block: 0;
