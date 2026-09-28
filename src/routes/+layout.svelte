@@ -5,7 +5,7 @@ import { page, updated } from "$app/state";
 import SignInButton from "$lib/components/SignInButton.svelte";
 import Toast from "$lib/components/Toast.svelte";
 import Upload from "$lib/components/Upload.svelte";
-import "../app.scss";
+import "../app.css";
 
 let { children, data } = $props();
 
