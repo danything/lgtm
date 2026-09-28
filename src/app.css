@@ -1,40 +1,25 @@
 /*
- * 見た目は Pico CSS(v2)。使う部品だけを SCSS で読み込む。
+ * 見た目は Blades の Pico(Pico CSS v2 を引き継いだもの。素の CSS で、Sass は要らない)。
  *
  * **Tailwind + daisyUI をやめた。** 出てくる部品は箱・札・ボタン・入力欄くらいで、
  * utility class を並べるより素の HTML を整えるほうが小さく、後から読んで分かる
  * (denpa・トドロク・tama・worklog・noren と同じ構成)。
  *
+ * **Pico は `pico` の層 (@layer) に入れる。** 層に入らないこちらの規則は、詳細度に
+ * 関係なく必ず Pico に勝つ。Pico の強い selector に合わせて同じ強さで書き直す、という
+ * 張り合いが要らない。各画面の <style> も同じく層の外なので、Pico より必ず勝つ。
+ *
  * **色は Pico の既定のまま使う。** 元のテーマの色は写さない。
  * --ui-* は Pico の変数から引いてあるので、明暗の切り替えにもそのまま追従する。
  */
-@use "@picocss/pico/scss/pico" with (
-	$enable-semantic-container: false,
-	$enable-responsive-typography: false,
-	$enable-responsive-spacings: false,
-	$modules: (
-		"layout/landmarks": false,
-		"content/figure": false,
-		"forms/input-color": false,
-		"forms/input-range": false,
-		"forms/input-file": false,
-		"components/accordion": false,
-		/*
-		 * **card は切らない。** --pico-card-background-color と --pico-card-box-shadow は
-		 * このモジュールが有効なときだけ Pico が出力する。切ると下の .panel の地と影が
-		 * 空になり、箱が透明になる(明暗どちらの値も一緒に消える)
-		 */
-		"components/dropdown": false,
-		"components/nav": false,
-		"components/tooltip": false
-	)
-);
+@import "@anyblades/blades/pico" layer(pico);
 
 :root {
 	/* フォントは束ねない(1 家族 1.3MB を全員に落とさせる価値が無い)。Windows なら
 	   BIZ UDPGothic、mac なら ヒラギノ、それ以外は OS の日本語フォント */
-	--pico-font-family-sans-serif: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP",
-		system-ui, sans-serif;
+	--pico-font-family-sans-serif:
+		"BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", system-ui,
+		sans-serif;
 	--pico-font-family-monospace: "MesloLGS NF", monospace;
 	--pico-font-size: 16px;
 	--pico-line-height: 1.7;
@@ -53,7 +38,7 @@
 }
 
 /*
- * この app.scss で使う色は**すべて Pico の変数から引く**。自前の色を持たないので、
+ * この app.css で使う色は**すべて Pico の変数から引く**。自前の色を持たないので、
  * Pico 側の明暗の切り替え(prefers-color-scheme / data-theme)にそのまま追従する
  */
 :root {
@@ -64,15 +49,56 @@
 	--ui-err: var(--pico-del-color);
 	--ui-info: var(--pico-primary);
 	/* 注意書きと札の地。地の色に混ぜるので、明暗どちらでも浮かない */
-	--ui-err-bg: color-mix(in srgb, var(--ui-err) 12%, var(--pico-background-color));
-	--ui-info-bg: color-mix(in srgb, var(--ui-info) 12%, var(--pico-background-color));
-	--ui-shadow: var(--pico-card-box-shadow);
+	--ui-err-bg: color-mix(
+		in srgb,
+		var(--ui-err) 12%,
+		var(--pico-background-color)
+	);
+	--ui-info-bg: color-mix(
+		in srgb,
+		var(--ui-info) 12%,
+		var(--pico-background-color)
+	);
+	/*
+	 * 影は Pico v2.1 の重ねた影のまま。Blades は 1 枚の濃い影に変えたが、写真の拡大表示の
+	 * 縁が変わるので前の値を持ってくる。色だけは明暗で違うので下で決める
+	 */
+	--ui-shadow:
+		0.0145rem 0.029rem 0.174rem rgb(var(--ui-shadow-rgb) / 0.01698),
+		0.0335rem 0.067rem 0.402rem rgb(var(--ui-shadow-rgb) / 0.024),
+		0.0625rem 0.125rem 0.75rem rgb(var(--ui-shadow-rgb) / 0.03),
+		0.1125rem 0.225rem 1.35rem rgb(var(--ui-shadow-rgb) / 0.036),
+		0.2085rem 0.417rem 2.502rem rgb(var(--ui-shadow-rgb) / 0.04302),
+		0.5rem 1rem 6rem rgb(var(--ui-shadow-rgb) / 0.06),
+		0 0 0 0.0625rem rgb(var(--ui-shadow-rgb) / 0.015);
+	--ui-shadow-rgb: 129 145 181;
 	/*
 	 * 写真に重ねる幕。ここだけは Pico の変数を引かない -- 下にあるのは地の色ではなく
 	 * 任意の画像なので、明暗のどちらでも暗いままでないと白文字が読めない
 	 */
 	--ui-veil: rgb(0 0 0 / 0.5);
 	--ui-veil-color: #fff;
+}
+/* 影の色。Pico と同じ条件で暗いほうに切り替える */
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme]) {
+		--ui-shadow-rgb: 7 8.5 12;
+	}
+}
+[data-theme="dark"] {
+	--ui-shadow-rgb: 7 8.5 12;
+}
+
+/*
+ * **使わない Pico の部品を打ち消す。** Blades の Pico は部品を選べず丸ごと 1 枚で来る
+ * (部品ごとに読めるようにする話は anyblades/discussions#168)。Pico の Sass で外していた
+ * 部品 (landmarks・figure・input-color/range/file・accordion・dropdown・nav・tooltip) の
+ * うち、こちらの要素に当たるものだけをここで戻す。部品ごとに読めるようになったら、
+ * 読まないことにしてこの塊ごと消す
+ */
+/* ナビ (<nav>)。Pico は両端に寄せる。並べ方はヘッダーの .grow で決める */
+nav {
+	justify-content: normal;
 }
 
 html {
@@ -164,7 +190,8 @@ a.button {
 	gap: 0.4rem;
 	border: var(--pico-border-width) solid var(--pico-primary-border);
 	border-radius: var(--pico-border-radius);
-	padding: var(--pico-form-element-spacing-vertical) var(--pico-form-element-spacing-horizontal);
+	padding: var(--pico-form-element-spacing-vertical)
+		var(--pico-form-element-spacing-horizontal);
 	background: var(--pico-primary-background);
 	color: var(--pico-primary-inverse);
 	line-height: var(--pico-line-height);
