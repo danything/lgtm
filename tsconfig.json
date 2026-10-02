@@ -4,7 +4,12 @@
 		"rewriteRelativeImportExtensions": true,
 		"sourceMap": true,
 		"strict": true,
-		"types": ["bun", "$app/types"]
+		"types": ["bun", "$app/types"],
+		// #lib is resolved through package.json "imports", but svelte-check
+		// --tsgo cannot follow that to a .svelte file: the component comes back
+		// untyped and its props go unchecked. Spelling the same mapping out
+		// here makes it resolve.
+		"paths": { "#lib/*": ["./src/lib/*"] }
 	},
 	"include": ["src", "vite.config.ts"]
 }
