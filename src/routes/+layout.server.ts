@@ -1,6 +1,6 @@
-import { isAdmin } from "$lib/server/admin";
-import db from "$lib/server/db";
-import type { GhUser } from "$lib/server/model";
+import { isAdmin } from "#lib/server/admin.js";
+import db from "#lib/server/db.js";
+import type { GhUser } from "#lib/server/model.js";
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = ({ cookies }) => {

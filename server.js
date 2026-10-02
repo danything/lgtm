@@ -7,8 +7,9 @@ import { handler } from "./handler.js";
 // served by one pod can ask the other for JavaScript it has never heard of. The
 // asset directory is a volume shared between them to fix that -- but SvelteKit
 // answers anything unmatched under /_app with a 404 before hooks run, and the
-// static handler it would otherwise use builds its file list once at startup,
-// so the older pod never sees a file the newer one dropped in after it booted.
+// static handler it would otherwise use only serves the files listed at build
+// time (adapter-node 6; before that, the ones it found at startup), so the
+// older pod never serves a file the newer one dropped in.
 //
 // Hence this entry point instead of the adapter's: anything under the immutable
 // prefix is looked up on disk on every request, and only a miss goes on to
@@ -87,8 +88,8 @@ const server = http.createServer((req, res) => {
 });
 
 // Repeated from the adapter's index.js rather than inherited: a custom server
-// gets handler.js, which reads only ORIGIN, PROTOCOL_HEADER, HOST_HEADER,
-// PORT_HEADER, ADDRESS_HEADER, XFF_DEPTH and BODY_SIZE_LIMIT. SHUTDOWN_TIMEOUT
+// gets handler.js, which reads only PROTOCOL_HEADER, HOST_HEADER, PORT_HEADER,
+// ADDRESS_HEADER, XFF_DEPTH and BODY_SIZE_LIMIT. SHUTDOWN_TIMEOUT
 // belongs to the entry point, so honouring it is now this file's job. The pod
 // keeps answering what is already in flight while the Cilium Gateway stops
 // sending it anything new.

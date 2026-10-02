@@ -1,5 +1,5 @@
 <script lang="ts">
-import { setMessage } from "$lib/stores/toast.svelte";
+import { setMessage } from "#lib/stores/toast.svelte.js";
 
 let {
 	fileName,

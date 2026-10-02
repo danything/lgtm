@@ -1,5 +1,5 @@
 <script lang="ts">
-import { copyAndReport } from "$lib/clipboard";
+import { copyAndReport } from "#lib/clipboard.js";
 
 let {
 	// A function rather than a string: callers build their text from

@@ -9,8 +9,8 @@ export type File = {
 
 <script lang="ts">
 	import { untrack } from "svelte";
-	import { copyAndReport, lgtmMarkdown } from "$lib/clipboard";
-	import { FIRST_LIMIT, PER_PAGE } from "$lib/paging";
+	import { copyAndReport, lgtmMarkdown } from "#lib/clipboard.js";
+	import { FIRST_LIMIT, PER_PAGE } from "#lib/paging.js";
 	import CopyButton from "./CopyButton.svelte";
 	import DeleteButton from "./DeleteButton.svelte";
 	import PreviewButton from "./PreviewButton.svelte";
@@ -27,7 +27,7 @@ export type File = {
 
 	// Seeds SSR output with the initial page; the $effect below only re-syncs
 	// on later prop changes, which now means an upload or a delete calling
-	// invalidateAll. Reading the prop through untrack says that capturing just
+	// refreshAll. Reading the prop through untrack says that capturing just
 	// this first value is the point, rather than an oversight the compiler
 	// should flag.
 	// Roughly the first screen on a desktop; a phone shows fewer, and loading
