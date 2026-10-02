@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
-import { accountExists } from "$lib/server/account";
-import { create } from "$lib/server/lgtm";
+import { accountExists } from "#lib/server/account.js";
+import { create } from "#lib/server/lgtm.js";
 import type { RequestHandler } from "./$types";
 
 export const POST: RequestHandler = async ({ request, cookies }) => {

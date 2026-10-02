@@ -1,5 +1,5 @@
-import type { ServerInit } from "@sveltejs/kit";
-import { backfillImageSizes } from "$lib/server/lgtm";
+import type { ServerInit } from "@sveltejs/kit/hooks";
+import { backfillImageSizes } from "#lib/server/lgtm.js";
 
 // Runs once before the first request is served, so the gallery never renders
 // a stored image without its size.

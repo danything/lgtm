@@ -1,8 +1,8 @@
 import { redirect } from "@sveltejs/kit";
-import db from "$lib/server/db";
-import { accessToken, githubUser } from "$lib/server/github";
-import { generateUniqueKey, SESSION_MAX_AGE } from "$lib/server/key";
-import type { GhUser } from "$lib/server/model";
+import db from "#lib/server/db.js";
+import { accessToken, githubUser } from "#lib/server/github.js";
+import { generateUniqueKey, SESSION_MAX_AGE } from "#lib/server/key.js";
+import type { GhUser } from "#lib/server/model.js";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async ({ url, cookies }) => {

@@ -1,7 +1,7 @@
 <script lang="ts">
-import { invalidateAll } from "$app/navigation";
-import { copyText, lgtmMarkdown } from "$lib/clipboard";
-import { setMessage } from "$lib/stores/toast.svelte";
+import { copyText, lgtmMarkdown } from "#lib/clipboard.js";
+import { setMessage } from "#lib/stores/toast.svelte.js";
+import { refreshAll } from "$app/navigation";
 
 let isGenerating = $state(false);
 let inputRef: HTMLInputElement | undefined = $state();
@@ -34,7 +34,7 @@ async function upload(files: FileList) {
 	} catch {
 		setMessage("画像生成失敗");
 	} finally {
-		await invalidateAll();
+		await refreshAll();
 		if (inputRef) inputRef.value = "";
 		isGenerating = false;
 	}

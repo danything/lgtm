@@ -1,4 +1,4 @@
-import { setMessage } from "$lib/stores/toast.svelte";
+import { setMessage } from "#lib/stores/toast.svelte.js";
 
 /** Markdown for one uploaded image, ready to paste into a review. */
 export function lgtmMarkdown(fileName: string): string {
