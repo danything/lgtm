@@ -3,6 +3,12 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    # The image-tag PRs from docker-publish.yml change only this one line, and
+    # being opened with GITHUB_TOKEN, each showed up here as a run that failed
+    # at once before the bot check in the job's if could skip it. Filtering on
+    # paths keeps the run from being recorded at all.
+    paths-ignore:
+      - 'deploy/deployment.yaml'
 
 jobs:
   claude-review:

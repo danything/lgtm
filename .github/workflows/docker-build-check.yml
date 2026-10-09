@@ -3,15 +3,19 @@ name: Docker Build Check
 on:
   pull_request:
     branches: [main]
+    # Nothing under deploy/ goes into the image (.dockerignore drops it), so a
+    # PR that only touches it has nothing to build. This is also what keeps the
+    # image-tag PRs from docker-publish.yml out: they are opened with
+    # GITHUB_TOKEN, and GitHub records each pull_request workflow for them as a
+    # run that fails at once ("workflow file issue") -- the job-level if below
+    # never gets to decide anything. Filtering on paths stops the run existing.
+    paths-ignore:
+      - 'deploy/**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # The image-bump PRs only touch deploy/, so there is nothing to build. Note
-    # that this skip never actually fires for them: they are opened with
-    # GITHUB_TOKEN, which by design starts no workflow run at all, so nothing
-    # here reports and docker-publish.yml posts their "build" status itself.
-    # The guard stays as a safety net for a bump PR opened by anyone else.
+    # Safety net for an image-tag PR opened by someone else; see paths-ignore.
     if: github.head_ref != 'bump-lgtm-image'
     steps:
       - uses: actions/checkout@v7
