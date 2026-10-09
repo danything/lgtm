@@ -28,8 +28,6 @@ jobs:
       contents: write
       packages: write
       pull-requests: write
-      # Lets the bump PR report its own required check; see the step below.
-      statuses: write
     steps:
       - uses: actions/checkout@v7
 
@@ -58,18 +56,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # main is protected behind a required "build" check, and pushing to it
-      # directly is not an option, so the deploy goes through a PR that bumps
-      # the image tag. That PR is created with GITHUB_TOKEN, and GitHub
-      # deliberately never starts a workflow run from that token, so the check
-      # would never report and the PR would sit blocked forever -- which is why
-      # every previous bump needed an admin override to merge.
+      # The deploy goes through a PR that bumps the image tag and merges itself;
+      # ArgoCD deploys whatever deploy/ says on main. The PR is opened with
+      # GITHUB_TOKEN, so no workflow of ours runs on it (docker-build-check.yml
+      # and claude-code-review.yml skip deploy/deployment.yaml-only changes).
       #
-      # Report the check from here instead. The bump rewrites nothing but the
-      # image tag under deploy/, and the image it points at was built and pushed
-      # by the steps above, so there is genuinely nothing left to build. The
-      # status has to be posted by this token: branch protection pins the
-      # "build" context to the GitHub Actions app.
+      # This step used to post a "build" status on the PR as well, back when
+      # main required that check and nothing else could report it. The ruleset
+      # no longer requires any check, so the PR merges without one.
       - name: Open and self-merge PR to update deployment image tag
         run: |
           git config user.name "github-actions[bot]"
@@ -91,22 +85,16 @@ jobs:
           git commit -m "chore: update lgtm image to ${GITHUB_SHA}"
           git push --force origin "$branch"
           title="chore: update lgtm image to ${GITHUB_SHA::7}"
-          body="Automated image tag bump for commit ${GITHUB_SHA}. Merges itself once the check below is reported."
+          body="Automated image tag bump for commit ${GITHUB_SHA}. Merges itself."
           gh pr create --base main --head "$branch" --title "$title" --body "$body" \
             || gh pr edit "$branch" --title "$title" --body "$body"
-
-          gh api "repos/${GITHUB_REPOSITORY}/statuses/$(git rev-parse HEAD)" \
-            -f state=success \
-            -f context=build \
-            -f description="deploy-only bump; image built by this run" \
-            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
           # Squash is the only method this repository allows; --merge fails
           # outright with "Merge commits are not allowed on this repository",
           # which took the whole job down with it.
           #
-          # The status can take a moment to land against the PR, so fall back to
-          # auto-merge, which fires whenever protection is eventually satisfied.
+          # Auto-merge is the fallback should main ever require something again:
+          # the PR then merges as soon as that is satisfied.
           gh pr merge "$branch" --squash || gh pr merge "$branch" --auto --squash
         env:
           REGISTRY: ${{ env.REGISTRY }}

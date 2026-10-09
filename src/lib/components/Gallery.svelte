@@ -106,12 +106,14 @@ export type File = {
 		isDone = fileNameList.length < FIRST_LIMIT;
 		if (!sentinel) return;
 		// Watches a marker after the last tile instead of measuring the page on
-		// every scroll event; the margin starts the fetch 300px before it shows.
+		// every scroll event; the margin starts the fetch 800px before it shows.
+		// At 300px a quick scroll on a desktop reached the end of the first 12
+		// tiles before the next batch arrived.
 		const observer = new IntersectionObserver(
 			(entries) => {
 				if (entries.some((e) => e.isIntersecting)) loadMore(observer);
 			},
-			{ rootMargin: "0px 0px 300px 0px" },
+			{ rootMargin: "0px 0px 800px 0px" },
 		);
 		observer.observe(sentinel);
 		return () => observer.disconnect();

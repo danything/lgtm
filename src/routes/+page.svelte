@@ -6,9 +6,9 @@ import type { PageProps } from "./$types";
 
 let { data }: PageProps = $props();
 
-const title = "LGTM画像ジェネレーター｜GIF対応・Markdownをワンクリックでコピー";
+const title = "LGTM画像ジェネレーター｜GIF対応・ワンクリックでコピーしてGitHubに貼れる";
 const description =
-	"画像やGIFをドラッグ&ドロップするだけでLGTM画像を作成。アニメーションもそのまま残ります。みんなが作ったLGTM画像はクリックひとつでMarkdownをコピーでき、GitHubのプルリクエストのレビューにすぐ貼れます。";
+	"画像やGIFをドラッグ&ドロップするだけでLGTM画像を作成。アニメーションもそのまま残ります。みんなが作ったLGTM画像はクリックひとつで貼り付け用の画像タグをコピーでき、GitHubのプルリクエストのレビューにそのまま貼れます。";
 </script>
 
 <svelte:head>
