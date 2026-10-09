@@ -1,9 +1,14 @@
 import { setMessage } from "#lib/stores/toast.svelte.js";
 
-/** Markdown for one uploaded image, ready to paste into a review. */
-export function lgtmMarkdown(fileName: string): string {
+/**
+ * An <img> tag for one uploaded image, ready to paste into a review. A tag
+ * rather than `![LGTM](...)` because Markdown has no way to give a size, and
+ * width="100%" makes the picture fill the comment instead of sitting at
+ * whatever size the file happens to be. GitHub keeps the width attribute.
+ */
+export function lgtmImgTag(fileName: string): string {
 	// Read at call time, when `location` exists.
-	return `![LGTM](${window.location.origin}/images/${fileName})`;
+	return `<img src="${window.location.origin}/images/${fileName}" alt="LGTM" width="100%">`;
 }
 
 /**

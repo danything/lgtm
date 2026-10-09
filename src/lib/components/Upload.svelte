@@ -1,5 +1,5 @@
 <script lang="ts">
-import { copyText, lgtmMarkdown } from "#lib/clipboard.js";
+import { copyText, lgtmImgTag } from "#lib/clipboard.js";
 import { setMessage } from "#lib/stores/toast.svelte.js";
 import { refreshAll } from "$app/navigation";
 
@@ -19,11 +19,11 @@ async function upload(files: FileList) {
 		const res = await fetch("/lgtm/upload", { method: "POST", body: formData });
 		if (!res.ok) throw new Error("upload failed");
 		const { files: created }: { files: string[] } = await res.json();
-		// Straight onto the clipboard: what you came here for is the markdown,
+		// Straight onto the clipboard: what you came here for is the tag,
 		// and the alternative is finding the new tile and clicking it.
 		const copied =
 			created.length > 0 &&
-			(await copyText(created.map(lgtmMarkdown).join("\n")));
+			(await copyText(created.map(lgtmImgTag).join("\n")));
 		setMessage(
 			copied
 				? created.length > 1

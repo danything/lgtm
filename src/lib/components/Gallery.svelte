@@ -9,7 +9,7 @@ export type File = {
 
 <script lang="ts">
 	import { untrack } from "svelte";
-	import { copyAndReport, lgtmMarkdown } from "#lib/clipboard.js";
+	import { copyAndReport, lgtmImgTag } from "#lib/clipboard.js";
 	import { FIRST_LIMIT, PER_PAGE } from "#lib/paging.js";
 	import CopyButton from "./CopyButton.svelte";
 	import DeleteButton from "./DeleteButton.svelte";
@@ -132,7 +132,7 @@ export type File = {
 			a plain positioned element and let the image be the button.
 		-->
 		<div class="tile">
-			<!-- The tile copies. Getting the markdown is why anyone is here, so it
+			<!-- The tile copies. Getting the tag is why anyone is here, so it
 			     is the whole picture rather than a button on top of it; the other
 			     thing you might have wanted is the button. -->
 			<button
@@ -140,7 +140,7 @@ export type File = {
 				aria-label="リンクをコピー"
 				onclick={() =>
 					copyAndReport(
-						lgtmMarkdown(file.name),
+						lgtmImgTag(file.name),
 						"リンクをコピーしました",
 						"コピーできませんでした",
 					)}
@@ -219,7 +219,7 @@ export type File = {
 						/>
 					{/if}
 					<CopyButton
-						text={() => lgtmMarkdown(diaImage?.name ?? "")}
+						text={() => lgtmImgTag(diaImage?.name ?? "")}
 						onClick={closeDialog}
 						isVisible={false}
 					/>
