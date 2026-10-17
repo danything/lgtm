@@ -114,6 +114,13 @@ html {
 	font-size: var(--pico-font-size);
 	/* 元の app.html が付けていた antialiased の分 */
 	-webkit-font-smoothing: antialiased;
+	/*
+	 * スクロールバーの幅を最初から空けておく。最初の 12 枚が画面に収まると
+	 * スクロールバーが無く、続きを読み込んで初めて出てきた瞬間に本文の幅が
+	 * 縮んで、タイルの並びが全部組み直されていた。画面に重ねて出るスクロール
+	 * バー(macOS・スマホ)ではもともと幅を取らないので、何も変わらない。
+	 */
+	scrollbar-gutter: stable;
 }
 body {
 	margin: 0;
