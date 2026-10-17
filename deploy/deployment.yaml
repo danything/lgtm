@@ -52,7 +52,7 @@ spec:
       securityContext:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
-      # preStop (5s) + SHUTDOWN_TIMEOUT (30s, honoured by server.js), plus room.
+      # preStop (5s) + SHUTDOWN_TIMEOUT (30s, honoured by adapter-bun), plus room.
       terminationGracePeriodSeconds: 45
       containers:
         - name: lgtm
@@ -96,7 +96,7 @@ spec:
             # that a granted admin can always be undone. Empty means nobody.
             - name: ADMIN_GH_LOGINS
               value: "5ym"
-            # Read by server.js: finish serving in-flight requests before
+            # Read by adapter-bun: finish serving in-flight requests before
             # exiting. Must stay under terminationGracePeriodSeconds above.
             - name: SHUTDOWN_TIMEOUT
               value: "30"
@@ -120,8 +120,6 @@ spec:
               mountPath: /usr/src/app/images
             - name: lgtm-db
               mountPath: /usr/src/app/data
-            - name: lgtm-assets
-              mountPath: /usr/src/app/build/client/_app/immutable
       volumes:
         - name: lgtm-images
           persistentVolumeClaim:
@@ -129,6 +127,3 @@ spec:
         - name: lgtm-db
           persistentVolumeClaim:
             claimName: lgtm-db
-        - name: lgtm-assets
-          persistentVolumeClaim:
-            claimName: lgtm-assets
