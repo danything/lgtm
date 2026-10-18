@@ -19,9 +19,11 @@
  *   直下ではなく、<section> も .container/.grid/.overflow-auto も使っていない
  * - content の code・figure: <code>/<pre>/<kbd> も <figure> も出てこない
  * - forms 全部: 入力欄はボタンから開く隠した <input type="file"> だけ
- * - components の dialog(modal) 以外: <article> も <details> も、nav の中の ul/li も、
+ * - components の card・modal 以外: <details> も、nav の中の ul/li も、
  *   [role=group]・[aria-busy]・[data-tooltip]・<progress> も使っていない。
  *   ナビは .cluster で並べるので、Pico の nav の両端寄せを打ち消す必要も無くなった
+ * card は <article> が無くても読む。--ui-surface が引く --pico-card-background-color が
+ * 3.1.0-alpha.2 から card の部品の側で決まるようになり、読まないと箱の地の色が消えるため
  * 使う要素を足すときは、対応する部品をここに足す
  */
 @import "@anyblades/blades/pico/variables" layer(pico);
@@ -32,6 +34,7 @@
 @import "@anyblades/blades/pico/content/table" layer(pico);
 @import "@anyblades/blades/pico/content/embedded-content" layer(pico);
 @import "@anyblades/blades/pico/content/misc" layer(pico);
+@import "@anyblades/blades/pico/components/card" layer(pico);
 @import "@anyblades/blades/pico/components/modal" layer(pico);
 @import "@anyblades/blades/pico/utilities" layer(pico);
 
