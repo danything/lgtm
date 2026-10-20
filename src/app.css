@@ -5,7 +5,8 @@
  * utility class を並べるより素の HTML を整えるほうが小さく、後から読んで分かる
  * (denpa・トドロク・tama・worklog・noren と同じ構成)。
  *
- * **Pico は `pico` の層 (@layer) に入れる。** 層に入らないこちらの規則は、詳細度に
+ * **Pico は `blades` の層 (@layer) に入っている。** 読むのは layered/* の部品で、
+ * 部品の側で `@layer blades` に包んである。層に入らないこちらの規則は、詳細度に
  * 関係なく必ず Pico に勝つ。Pico の強い selector に合わせて同じ強さで書き直す、という
  * 張り合いが要らない。各画面の <style> も同じく層の外なので、Pico より必ず勝つ。
  *
@@ -13,8 +14,16 @@
  * --ui-* は Pico の変数から引いてあるので、明暗の切り替えにもそのまま追従する。
  *
  * **Pico は使う部品だけ読む。** 丸ごとだと 90KB あり、ほとんどはこのアプリに出てこない
- * 要素のためのもの。並びは Pico の順(変数 → layout → content → forms → components →
- * utilities)のまま。読まないもの:
+ * 要素のためのもの。ここ(全画面で読む)には、どの画面にも出る要素の土台だけを置く。
+ * 並びは Pico の順(変数 → layout → content → components → utilities)のまま。
+ * 一部の画面にしか出ない要素の部品は、その要素を描く component の <script> で
+ * import する。その画面の chunk にだけ入り、ほかの画面は落とさずに済む:
+ * - components/modal: Gallery.svelte(拡大表示の <dialog>。一覧と /mine)
+ * - content/table: admin/+page.svelte(<table> はここだけ)
+ * card は <article> が無くてもここで読む。--ui-surface が引く --pico-card-background-color が
+ * 3.1.0-alpha.2 から card の部品の側で決まるようになり、読まないと箱の地の色が消えるため。
+ * modal も card を前提にしているので、ここにあれば足りる。
+ * 読まないもの:
  * - layout の landmarks・section・container・grid・overflow-auto: <main> は body の
  *   直下ではなく (landmarks は body > main の余白だけ。body と main の初期化は
  *   document にある)、<section> も .container/.grid/.overflow-auto も使っていない
@@ -23,21 +32,22 @@
  * - components の card・modal 以外: <details> も、nav の中の ul/li も、
  *   [role=group]・[aria-busy]・[data-tooltip]・<progress> も使っていない。
  *   ナビは .cluster で並べるので、Pico の nav の両端寄せを打ち消す必要も無くなった
- * card は <article> が無くても読む。--ui-surface が引く --pico-card-background-color が
- * 3.1.0-alpha.2 から card の部品の側で決まるようになり、読まないと箱の地の色が消えるため
- * 使う要素を足すときは、対応する部品をここに足す
+ * 使う要素を足すときは、対応する部品を `import "@anyblades/blades/layered/<部品>";` で
+ * その要素を描く component に足す(<style> の中で @import しない。component の
+ * 規則として閉じ込められ、読んだ数だけ複製される)。どの画面にも出る要素か、
+ * ここで変数を引く部品なら、ここに Pico の順で足す。route の chunk の CSS はここより
+ * 後に読まれ、層の中では utilities より後ろに並ぶので、utilities と同じ要素・
+ * 同じ性質を決める部品はここに置く
  */
-@import "@anyblades/blades/pico/variables" layer(pico);
-@import "@anyblades/blades/pico/layout/document" layer(pico);
-@import "@anyblades/blades/pico/content/typography" layer(pico);
-@import "@anyblades/blades/pico/content/link" layer(pico);
-@import "@anyblades/blades/pico/content/button" layer(pico);
-@import "@anyblades/blades/pico/content/table" layer(pico);
-@import "@anyblades/blades/pico/content/embedded-content" layer(pico);
-@import "@anyblades/blades/pico/content/misc" layer(pico);
-@import "@anyblades/blades/pico/components/card" layer(pico);
-@import "@anyblades/blades/pico/components/modal" layer(pico);
-@import "@anyblades/blades/pico/utilities" layer(pico);
+@import "@anyblades/blades/layered/variables";
+@import "@anyblades/blades/layered/layout/document";
+@import "@anyblades/blades/layered/content/typography";
+@import "@anyblades/blades/layered/content/link";
+@import "@anyblades/blades/layered/content/button";
+@import "@anyblades/blades/layered/content/embedded-content";
+@import "@anyblades/blades/layered/content/misc";
+@import "@anyblades/blades/layered/components/card";
+@import "@anyblades/blades/layered/utilities";
 
 :root {
 	/* フォントは束ねない(1 家族 1.3MB を全員に落とさせる価値が無い)。Windows なら

@@ -14,6 +14,7 @@ export type File = {
 	import CopyButton from "./CopyButton.svelte";
 	import DeleteButton from "./DeleteButton.svelte";
 	import PreviewButton from "./PreviewButton.svelte";
+	import "@anyblades/blades/layered/components/modal";
 
 	let {
 		fileNameList,
