@@ -2,6 +2,7 @@
 import { setMessage } from "#lib/stores/toast.svelte.js";
 import { refreshAll } from "$app/navigation";
 import type { PageProps } from "./$types";
+import "@anyblades/blades/layered/content/table";
 
 let { data }: PageProps = $props();
 
