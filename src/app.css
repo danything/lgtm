@@ -16,7 +16,8 @@
  * 要素のためのもの。並びは Pico の順(変数 → layout → content → forms → components →
  * utilities)のまま。読まないもの:
  * - layout の landmarks・section・container・grid・overflow-auto: <main> は body の
- *   直下ではなく、<section> も .container/.grid/.overflow-auto も使っていない
+ *   直下ではなく (landmarks は body > main の余白だけ。body と main の初期化は
+ *   document にある)、<section> も .container/.grid/.overflow-auto も使っていない
  * - content の code・figure: <code>/<pre>/<kbd> も <figure> も出てこない
  * - forms 全部: 入力欄はボタンから開く隠した <input type="file"> だけ
  * - components の card・modal 以外: <details> も、nav の中の ul/li も、
@@ -126,7 +127,6 @@ html {
 	scrollbar-gutter: stable;
 }
 body {
-	margin: 0;
 	background: var(--pico-background-color);
 	/* 日本語を文節で折り返す */
 	word-break: auto-phrase;
