@@ -8,7 +8,7 @@
 # finds SSE4.1 under Emscripten but not SSE2, and the SSE4.1 code needs the SSE2
 # helpers, so both are switched on explicitly. Sources are pinned to exact
 # commits.
-FROM emscripten/emsdk:3.1.56 AS wasm
+FROM emscripten/emsdk:3.1.74 AS wasm
 WORKDIR /tmp
 ENV FLAGS="-O3 -msimd128 -msse2 -msse4.1"
 # The libraries are built before wasm/ is copied in, so they stay cached while
