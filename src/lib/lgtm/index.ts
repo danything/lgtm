@@ -1,31 +1,56 @@
-import type { Request, Response } from "./worker";
+import type { Connect, Job, Result } from "./protocol";
 
 /**
  * Converts each picture into an LGTM WebP in the browser, in order, and
  * answers with the results ready to upload. Fails as a whole if any one file
  * cannot be converted, as the server-side conversion did.
  *
- * The worker, and the libwebp wasm it loads, exist only for the length of one
- * batch: nobody pays for them until they upload, and nothing is left holding
- * a few hundred MB of frames afterwards.
+ * Two workers form a pipeline: one decodes and stamps frames, the other
+ * encodes them, so a long animation takes about as long as the slower of the
+ * two rather than both added up. They, and the wasm they load, exist only for
+ * the length of one batch.
  */
 export async function makeLgtm(files: Blob[]): Promise<File[]> {
-	const worker = new Worker(new URL("./worker.ts", import.meta.url), {
+	const decoder = new Worker(new URL("./decode.worker.ts", import.meta.url), {
 		type: "module",
 	});
+	const encoder = new Worker(new URL("./encode.worker.ts", import.meta.url), {
+		type: "module",
+	});
+	const { port1, port2 } = new MessageChannel();
+	decoder.postMessage({ type: "connect", port: port1 } satisfies Connect, [
+		port1,
+	]);
+	encoder.postMessage({ type: "connect", port: port2 } satisfies Connect, [
+		port2,
+	]);
+
+	const pending = new Map<
+		number,
+		{ resolve: (r: Result) => void; reject: (e: Error) => void }
+	>();
+	encoder.onmessage = ({ data }: MessageEvent<Result>) =>
+		pending.get(data.id)?.resolve(data);
+	const crash = (e: ErrorEvent) => {
+		for (const p of pending.values()) p.reject(new Error(e.message));
+	};
+	decoder.onerror = crash;
+	encoder.onerror = crash;
+
 	try {
 		const out: File[] = [];
 		for (const [id, file] of files.entries()) {
-			const res = await new Promise<Response>((resolve, reject) => {
-				worker.onmessage = ({ data }: MessageEvent<Response>) => resolve(data);
-				worker.onerror = (e) => reject(new Error(e.message));
-				worker.postMessage({ id, file } satisfies Request);
+			const res = await new Promise<Result>((resolve, reject) => {
+				pending.set(id, { resolve, reject });
+				decoder.postMessage({ type: "job", id, file } satisfies Job);
 			});
+			pending.delete(id);
 			if (!res.ok) throw new Error(res.error);
 			out.push(new File([res.webp], "lgtm.webp", { type: "image/webp" }));
 		}
 		return out;
 	} finally {
-		worker.terminate();
+		decoder.terminate();
+		encoder.terminate();
 	}
 }

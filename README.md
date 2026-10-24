@@ -9,11 +9,13 @@ xool から分離したもので、ポスト通信簿は <https://github.com/dan
 画像をアップロードすると LGTM を重ねて webp で保存します。長辺 960px に収め、
 アニメーション(GIF・WebP)はそのまま残ります。EXIF の向きも反映します。
 
-変換はブラウザの中でやります。Web Worker の中で画像を読み込み(GIF は gifuct-js、
-アニメーション WebP は libwebp の wasm、それ以外はブラウザ自身)、Canvas で縮小と
-LGTM の合成をして、libwebp の wasm で WebP にします。wasm は wasm-webp のバインディングを
-SIMD 有効でビルドし直したもので(`scripts/build-webp-wasm.sh`、出力は
-`src/lib/lgtm/vendor/`)、配布版より速く動きます。サーバーは届いた
+変換はブラウザの中でやります。Web Worker を 2 つ並べたパイプラインで、片方が画像を
+読み込んで(GIF は giflib、アニメーション WebP は libwebp、それ以外はブラウザ自身)
+Canvas で縮小と LGTM の合成をし、できたフレームから順にもう片方へ渡して libwebp で
+WebP にします。読み込みとエンコードが同時に進むので、長いアニメーションでも速く
+終わります。giflib と libwebp は `wasm/lgtm.cpp` のバインディングと一緒に SIMD 有効で
+wasm にしたもので、`scripts/build-wasm.sh` でビルドし直せます(出力は
+`src/lib/lgtm/vendor/`)。サーバーは届いた
 ファイルが WebP であること・長辺 960px 以内・30MB 以内であることだけを確かめて
 そのまま保存します。LGTM が載っているかまでは確かめられないので、素の画像を上げる
 アカウントは削除で対処します。

@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!src/lib/lgtm/vendor/webp-wasm.js"]
+		"includes": ["**", "!src/lib/lgtm/vendor/lgtm-wasm.js"]
 	},
 	"overrides": [
 		{
