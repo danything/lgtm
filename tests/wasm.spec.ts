@@ -42,7 +42,7 @@ function gif(w: number, h: number): Uint8Array {
     const codes: number[] = [];
     for (let i = 0; i < w * h; i++) {
       if (i % 2 === 0) codes.push(4); // clear
-      codes.push((i + frame) % 4);
+      codes.push(frame); // frame 0 all red, frame 1 all green
     }
     codes.push(5); // end of information
     const data: number[] = [];
@@ -75,6 +75,8 @@ type Converted = {
   width: number;
   height: number;
   progress: number;
+  /** RGB of the top-left pixel, which the LGTM mark leaves alone. */
+  corner: number[];
 };
 
 /**
@@ -85,7 +87,7 @@ type Converted = {
 async function convert(
   page: Page,
   workers: { decode: string; encode: string },
-  source: number[] | { png: [number, number] },
+  source: Uint8Array | { png: [number, number] },
 ): Promise<Converted> {
   return page.evaluate(
     async ({ workers, source }) => {
@@ -126,12 +128,16 @@ async function convert(
         const bitmap = await createImageBitmap(
           new Blob([webp], { type: "image/webp" }),
         );
+        const ctx = new OffscreenCanvas(1, 1).getContext("2d")!;
+        ctx.drawImage(bitmap, 0, 0);
+        const corner = [...ctx.getImageData(0, 0, 1, 1).data.slice(0, 3)];
         return {
           head: `${tag(0)}....${tag(8)}`,
           anim: new TextDecoder("latin1").decode(webp).includes("ANIM"),
           width: bitmap.width,
           height: bitmap.height,
           progress,
+          corner,
         };
       } finally {
         decoder.terminate();
@@ -144,6 +150,10 @@ async function convert(
     },
   );
 }
+
+/** Lossy, so only roughly the colour that went in. */
+const expectColour = (got: number[], want: number[]) =>
+  want.forEach((c, i) => expect(Math.abs(got[i] - c)).toBeLessThan(40));
 
 test("wasm converts a PNG and a GIF to WebP", async ({ page }) => {
   const errors: string[] = [];
@@ -163,7 +173,14 @@ test("wasm converts a PNG and a GIF to WebP", async ({ page }) => {
     const url = r.url();
     if (url.endsWith(".wasm")) wasm.push(r.status());
     if (url.endsWith(".js") && r.ok())
-      scripts.push(r.text().then((body) => ({ url, body })));
+      scripts.push(
+        r.text().then(
+          (body) => ({ url, body }),
+          // A body that cannot be read (a redirect, a cancelled load) only
+          // means that script is not searched.
+          () => ({ url, body: "" }),
+        ),
+      );
   });
 
   await page.goto(BASE_URL);
@@ -185,7 +202,10 @@ test("wasm converts a PNG and a GIF to WebP", async ({ page }) => {
 
   // A PNG over 960px wide: decoded by the browser, fitted within 960px,
   // encoded by libwebp.
-  const png = await convert(page, workers, { png: [1200, 600] });
+  const { corner: pngCorner, ...png } = await convert(page, workers, {
+    png: [1200, 600],
+  });
+  expectColour(pngCorner, [255, 136, 0]);
   expect(png).toEqual({
     head: "RIFF....WEBP",
     anim: false,
@@ -195,7 +215,13 @@ test("wasm converts a PNG and a GIF to WebP", async ({ page }) => {
   });
 
   // An animated GIF: decoded by giflib, encoded as an animated WebP.
-  const anim = await convert(page, workers, gif(5, 3));
+  const { corner: gifCorner, ...anim } = await convert(
+    page,
+    workers,
+    gif(5, 3),
+  );
+  // createImageBitmap reads the first frame.
+  expectColour(gifCorner, [255, 0, 0]);
   expect(anim).toEqual({
     head: "RIFF....WEBP",
     anim: true,
