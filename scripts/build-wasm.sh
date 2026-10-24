@@ -1,57 +1,23 @@
 #!/bin/sh
-# Builds the wasm the browser uses to make LGTM images: our bindings
-# (wasm/lgtm.cpp) over libwebp and giflib, with wasm SIMD on.
+# Writes src/lib/lgtm/vendor/lgtm-wasm.{js,wasm}, the wasm the browser uses to
+# make LGTM images, for local development (vite dev, bun run check/build). They
+# are not committed: the image builds them itself, and this builds the same
+# Dockerfile stage (wasm-out), so there is one definition of the build. The
+# types beside them (lgtm-wasm.d.ts) are written by hand and must follow
+# wasm/lgtm.cpp.
 #
-# -msimd128 enables wasm SIMD, and -msse2/-msse4.1 make libwebp compile its
-# SSE code paths, which Emscripten turns into wasm SIMD. libwebp's CMake check
-# finds SSE4.1 under Emscripten but not SSE2, and the SSE4.1 code needs the SSE2
-# helpers, so both are switched on explicitly. Sources are pinned to exact
-# commits.
-#
-# Run from the repo root with a Docker-compatible CLI (docker, wslc, ...):
+# Run from the repo root with a Docker-compatible CLI whose build takes
+# --target and --output (docker with BuildKit, wslc, ...):
 #   ./scripts/build-wasm.sh [docker|wslc]
-# Writes src/lib/lgtm/vendor/lgtm-wasm.{js,wasm}; the types beside them
-# (lgtm-wasm.d.ts) are written by hand and must follow wasm/lgtm.cpp.
+# The layer cache keeps a rerun quick until the Dockerfile's wasm stage or
+# wasm/ changes.
 set -eu
 CLI="${1:-docker}"
-ROOT="$(pwd)"
-OUT="$ROOT/src/lib/lgtm/vendor"
-mkdir -p "$OUT"
-"$CLI" run --rm -v "$ROOT/wasm:/src:ro" -v "$OUT:/out" emscripten/emsdk:3.1.56 sh -euc '
-	cd /tmp
-	git clone -q https://github.com/webmproject/libwebp.git libwebp
-	git -C libwebp checkout -q 4fa21912338357f89e4fd51cf2368325b59e9bd9 # v1.6.0
-	git clone -q https://git.code.sf.net/p/giflib/code giflib
-	git -C giflib checkout -q edff4aed17f857442ab0cac31566572ba08f93d3 # 6.1.3
-
-	FLAGS="-O3 -msimd128 -msse2 -msse4.1"
-	WEBP_SIMD="-DWEBP_HAVE_SSE2 -DWEBP_HAVE_SSE41"
-	emcmake cmake -S libwebp -B libwebp/build \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_C_FLAGS="$FLAGS $WEBP_SIMD" \
-		-DCMAKE_DISABLE_FIND_PACKAGE_Threads=1 \
-		-DWEBP_ENABLE_SIMD=ON \
-		-DWEBP_BUILD_CWEBP=OFF -DWEBP_BUILD_DWEBP=OFF \
-		-DWEBP_BUILD_GIF2WEBP=OFF -DWEBP_BUILD_IMG2WEBP=OFF \
-		-DWEBP_BUILD_VWEBP=OFF -DWEBP_BUILD_EXTRAS=OFF \
-		-DWEBP_BUILD_WEBPINFO=OFF -DWEBP_BUILD_ANIM_UTILS=OFF >/dev/null
-	make -s -C libwebp/build -j"$(nproc)" webp sharpyuv webpmux webpdemux >/dev/null
-
-	# Only the decoding half of giflib.
-	for f in dgif_lib gifalloc gif_err gif_hash openbsd-reallocarray; do
-		emcc -c $FLAGS -I giflib -o giflib/$f.o giflib/$f.c
-	done
-
-	em++ $FLAGS -std=c++17 -lembind \
-		-I libwebp/src -I giflib \
-		-s EXPORT_ES6=1 -s MODULARIZE=1 -s ENVIRONMENT=worker \
-		-s ALLOW_MEMORY_GROWTH=1 -s MAXIMUM_MEMORY=4GB \
-		-o /out/lgtm-wasm.js \
-		/src/lgtm.cpp giflib/*.o \
-		libwebp/build/libwebp.a libwebp/build/libsharpyuv.a \
-		libwebp/build/libwebpmux.a libwebp/build/libwebpdemux.a
-'
-# Generated code: keep svelte-check out of it (its types are lgtm-wasm.d.ts).
-printf '// @ts-nocheck\n' | cat - "$OUT/lgtm-wasm.js" > "$OUT/lgtm-wasm.js.tmp"
-mv "$OUT/lgtm-wasm.js.tmp" "$OUT/lgtm-wasm.js"
-ls -l "$OUT"
+# A tar rather than type=local: wslc writes a single file or a stream, not a
+# directory. It lands in a file first so a failed build stops here (set -e)
+# instead of being hidden behind the pipe into tar.
+TAR="$(mktemp)"
+trap 'rm -f "$TAR"' EXIT
+"$CLI" build --target wasm-out --output type=tar,dest=- . >"$TAR"
+tar -x -f "$TAR" -C src/lib/lgtm/vendor
+ls -l src/lib/lgtm/vendor

@@ -1,5 +1,6 @@
-// Types for lgtm-wasm.js beside this file, built by scripts/build-wasm.sh from
-// wasm/lgtm.cpp. Written by hand: keep in step with the bindings there.
+// Types for lgtm-wasm.js beside this file, built from wasm/lgtm.cpp by the
+// Dockerfile's wasm stage (locally: scripts/build-wasm.sh). Written by hand:
+// keep in step with the bindings there.
 // Every object made here lives in the wasm heap and must be delete()d.
 
 /** One whole canvas of RGBA, and how long it shows in milliseconds. */
