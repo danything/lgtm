@@ -25,11 +25,13 @@ export async function copyText(text: string): Promise<boolean> {
 	}
 }
 
-/** Copy, and say which of the two things happened. */
+/** Copy, say which of the two things happened, and answer whether it took. */
 export async function copyAndReport(
 	text: string,
 	copied: string,
 	failed: string,
-) {
-	setMessage((await copyText(text)) ? copied : failed);
+): Promise<boolean> {
+	const ok = await copyText(text);
+	setMessage(ok ? copied : failed);
+	return ok;
 }

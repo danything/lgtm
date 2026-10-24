@@ -1,5 +1,6 @@
 <script lang="ts">
 import SignInButton from "#lib/components/SignInButton.svelte";
+import ThemeToggle from "#lib/components/ThemeToggle.svelte";
 import Toast from "#lib/components/Toast.svelte";
 import Upload from "#lib/components/Upload.svelte";
 import { browser } from "$app/env";
@@ -95,6 +96,7 @@ if (browser) {
 		{/if}
 	</span>
 	<div class="grow"></div>
+	<ThemeToggle initial={data.theme} />
 	<!-- 管理は名前より左。右端に置くと、管理者かどうかで名前の位置が変わり、
 	     同じ画面なのに人によって並びが違って見える。 -->
 	{#if data.isAdmin}
@@ -139,6 +141,12 @@ nav {
 	padding: 0.375rem;
 	flex-wrap: nowrap;
 	gap: 0.25rem;
+	/* 開いたときに上からすっと降りてくる (一度だけ。ページを移っても帯はそのまま) */
+	animation: ui-drop 420ms var(--ui-ease-out) both;
+	/* テーマを切り替えたとき、面と影もふわっと移る */
+	transition:
+		background-color 240ms var(--ui-ease),
+		box-shadow 240ms var(--ui-ease);
 }
 @media (min-width: 640px) {
 	nav {
@@ -190,6 +198,8 @@ nav a.button.logo {
 	border-radius: 1px;
 	background: var(--pico-primary);
 	content: "";
+	/* 選んだタブに移ると、線が真ん中から伸びる */
+	animation: ui-grow 260ms var(--ui-ease-out) both;
 }
 
 /* ドラッグ&ドロップの案内は横幅に余裕のある画面だけ */

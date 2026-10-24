@@ -88,6 +88,8 @@ async function onClickDelete(e: MouseEvent) {
 .armed {
 	width: auto;
 	padding-inline: 0.625rem 0.75rem;
+	/* 確かめを待っていることを、小さく揺れて知らせる */
+	animation: ui-nudge 320ms var(--ui-ease) both;
 }
 .label {
 	font-size: var(--ui-text-sm);

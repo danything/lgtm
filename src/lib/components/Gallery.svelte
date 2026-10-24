@@ -46,6 +46,23 @@ export type File = {
 	let isDone = false;
 	let sentinel: HTMLDivElement | undefined = $state();
 	let diaImage = $state<File>();
+	// The tile whose link was just copied, for a moment: it shows a tick there,
+	// where the click was, as well as the toast at the bottom. Only which tile;
+	// the badge's coming and going is CSS.
+	let copied = $state<string>();
+	let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+	async function copyTile(name: string) {
+		const ok = await copyAndReport(
+			lgtmImgTag(name),
+			"リンクをコピーしました",
+			"コピーできませんでした",
+		);
+		if (!ok) return;
+		copied = name;
+		clearTimeout(copiedTimer);
+		copiedTimer = setTimeout(() => (copied = undefined), 1200);
+	}
 	let dialog: HTMLDialogElement | undefined = $state();
 
 	function onClickItem(file: File) {
@@ -134,19 +151,16 @@ export type File = {
 			and threw the image and the overlays out into the row. Keep the tile as
 			a plain positioned element and let the image be the button.
 		-->
-		<div class="tile">
+		<!-- --i staggers the tiles' entrance; it restarts every 12 so a page
+		     appended by the scroll does not wait seconds for its last tiles. -->
+		<div class="tile" style:--i={i % 12}>
 			<!-- The tile copies. Getting the tag is why anyone is here, so it
 			     is the whole picture rather than a button on top of it; the other
 			     thing you might have wanted is the button. -->
 			<button
 				class="pic"
 				aria-label="リンクをコピー"
-				onclick={() =>
-					copyAndReport(
-						lgtmImgTag(file.name),
-						"リンクをコピーしました",
-						"コピーできませんでした",
-					)}
+				onclick={() => copyTile(file.name)}
 				type="button"
 			>
 				<!-- The tile's width comes from the picture's proportions, so they
@@ -170,6 +184,14 @@ export type File = {
 			     edge, over a shade that fades out upwards, so the picture itself
 			     stays in view. pointer-events-none so the thing it describes
 			     still receives the click. -->
+			{#if copied === file.name}
+				<div class="copied" aria-hidden="true">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+						<path d="m5 12.5 4.5 4.5L19 7.5" />
+					</svg>
+					コピーしました
+				</div>
+			{/if}
 			<div class="hint" aria-hidden="true">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -273,16 +295,26 @@ export type File = {
 	overflow: hidden;
 	border-radius: var(--ui-radius-lg);
 	background: var(--ui-subtle);
+	/* 下からふわっと、少しずつずらして並ぶ */
+	animation: ui-rise 520ms var(--ui-ease-out) both;
+	animation-delay: calc(var(--i, 0) * 45ms);
 }
-/* 読み込み中はタイルの地の色を明滅させてスケルトンにする */
-.tile:has(img:not(:global(.loaded))) {
-	animation: tile-pulse 1.5s ease-in-out infinite;
+/* 読み込み中は、地の上を光の筋が流れる (いま動いていることを示す印なので回し続ける) */
+.tile::before {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		100deg,
+		transparent 30%,
+		var(--ui-sweep) 50%,
+		transparent 70%
+	);
+	content: "";
+	animation: ui-shine 1.6s linear infinite;
+	pointer-events: none;
 }
-/* 上に乗るボタンまで明滅しないよう、動かすのは地の色だけ */
-@keyframes tile-pulse {
-	50% {
-		background: var(--ui-line);
-	}
+.tile:has(img:global(.loaded))::before {
+	display: none;
 }
 /* 画像そのものがボタン。ボタンらしい地・影・形は要らない */
 .pic {
@@ -298,17 +330,67 @@ export type File = {
 .pic:active {
 	transform: none;
 }
+/* 届いたら少し縮みながら浮かび上がる。乗せるとゆっくり寄る */
 .pic img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 	opacity: 0;
-	transition: opacity 0.3s;
+	transform: scale(1.04);
+	transition:
+		opacity 360ms var(--ui-ease-out),
+		transform 600ms var(--ui-ease-out);
 }
 .pic img:global(.loaded) {
 	opacity: 1;
+	transform: none;
 }
-/* キーボードで触っているタイルは、角に沿った外側の線 (切れないよう内側に引く) */
+@media (hover: hover) {
+	.tile:hover .pic img:global(.loaded) {
+		transform: scale(1.035);
+	}
+}
+/* コピーできたら、押したところに印がぽんと出る */
+.copied {
+	display: flex;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	align-items: center;
+	gap: 0.4rem;
+	border-radius: var(--ui-radius-full);
+	background: var(--ui-pop);
+	box-shadow: var(--ui-shadow-pop);
+	padding: 0.5rem 1rem;
+	color: var(--ui-fg);
+	font-size: var(--ui-text-sm);
+	font-weight: 700;
+	white-space: nowrap;
+	pointer-events: none;
+	translate: -50% -50%;
+	animation:
+		ui-pop 280ms var(--ui-ease-out) both,
+		ui-fade 240ms var(--ui-ease) 950ms reverse forwards;
+}
+.copied svg {
+	width: 1.125rem;
+	height: 1.125rem;
+	color: var(--pico-primary);
+	/* 印は線を描くように現れる */
+	stroke-dasharray: 24;
+	animation: copied-check 360ms var(--ui-ease-out) 80ms both;
+}
+@keyframes copied-check {
+	from {
+		stroke-dashoffset: 24;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+.tile:has(.copied) .hint {
+	opacity: 0 !important;
+}/* キーボードで触っているタイルは、角に沿った外側の線 (切れないよう内側に引く) */
 .pic:focus-visible {
 	outline-offset: -2px;
 	border-radius: var(--ui-radius-lg);
@@ -338,6 +420,7 @@ export type File = {
 	display: flex;
 	position: absolute;
 	inset: auto 0 0;
+	translate: 0 0.5rem;
 	align-items: center;
 	justify-content: center;
 	gap: 0.4rem;
@@ -349,7 +432,9 @@ export type File = {
 	text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
 	opacity: 0;
 	pointer-events: none;
-	transition: opacity var(--ui-duration) var(--ui-ease);
+	transition:
+		opacity 200ms var(--ui-ease),
+		translate 260ms var(--ui-ease-out);
 }
 .hint svg {
 	width: 1.125rem;
@@ -364,15 +449,15 @@ export type File = {
 	.tile .acts:has(:global(.armed)),
 	.tile:hover .hint {
 		opacity: 1;
+		translate: 0 0;
 	}
 }
 
+/* 動きを減らす設定では、寄る・縮む動きも付けない (app.css が時間を 0 にする) */
 @media (prefers-reduced-motion: reduce) {
-	.tile {
-		animation: none !important;
-	}
-	.pic img {
-		transition: none;
+	.pic img,
+	.tile:hover .pic img:global(.loaded) {
+		transform: none;
 	}
 }
 
@@ -385,6 +470,13 @@ dialog {
 	--pico-modal-overlay-background-color: var(--ui-backdrop);
 	--pico-modal-overlay-backdrop-filter: none;
 	backdrop-filter: none;
+}
+/* 開くと幕がふわっと暗くなり、箱が少し小さいところから膨らんで出る */
+dialog[open] {
+	animation: ui-fade 200ms var(--ui-ease) both;
+}
+dialog[open] .box {
+	animation: ui-pop 280ms var(--ui-ease-out) both;
 }
 .box {
 	z-index: 1;

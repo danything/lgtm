@@ -33,6 +33,7 @@ let { data }: PageProps = $props();
 }
 .empty {
 	padding-block: 2rem;
+	animation: ui-rise 480ms var(--ui-ease-out) both;
 }
 .strong {
 	font-weight: 700;

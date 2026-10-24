@@ -226,6 +226,13 @@ const dateTime = new Intl.DateTimeFormat("ja-JP", {
 }
 .count {
 	padding: 1rem 1.25rem;
+	animation: ui-rise 480ms var(--ui-ease-out) both;
+}
+.count:nth-child(2) {
+	animation-delay: 60ms;
+}
+.count:nth-child(3) {
+	animation-delay: 120ms;
 }
 .lab {
 	color: var(--ui-muted);

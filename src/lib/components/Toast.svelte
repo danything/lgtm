@@ -48,10 +48,14 @@ $effect(() => {
 	gap: 0.5rem;
 	padding-inline: 1rem;
 	pointer-events: none;
-	transition: opacity var(--ui-duration) var(--ui-ease);
+	transition:
+		opacity 240ms var(--ui-ease),
+		translate 240ms var(--ui-ease);
 }
+/* 消えるときは少し沈みながら薄くなる */
 .hide {
 	opacity: 0;
+	translate: 0 0.5rem;
 }
 .msg {
 	border-radius: var(--ui-radius-full);
@@ -61,5 +65,7 @@ $effect(() => {
 	color: var(--ui-fg);
 	font-size: var(--ui-text-sm);
 	font-weight: 700;
+	/* 下からふわっと浮かんで出る */
+	animation: ui-rise 320ms var(--ui-ease-out) both;
 }
 </style>

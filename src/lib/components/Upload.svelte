@@ -168,6 +168,7 @@ svg {
 	inset: 0;
 	background: color-mix(in srgb, var(--ui-bg) 80%, transparent);
 	padding: 0.75rem;
+	animation: ui-fade 160ms var(--ui-ease) both;
 }
 /* 受け皿はウィンドウそのもの。線は主の色 (線は主の色の役目)、字は本文の色 */
 .frame {
@@ -180,5 +181,14 @@ svg {
 	color: var(--ui-fg);
 	font-size: 1.5rem;
 	font-weight: 700;
+	/* 枠は少し小さいところから広がり、その後は落としてよいことをゆっくり脈打って示す */
+	animation:
+		ui-pop 280ms var(--ui-ease-out) both,
+		frame-breathe 1.4s ease-in-out 280ms infinite;
+}
+@keyframes frame-breathe {
+	50% {
+		border-color: color-mix(in srgb, var(--pico-primary) 45%, transparent);
+	}
 }
 </style>

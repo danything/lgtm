@@ -96,6 +96,8 @@
 	--ui-text-sm: 0.875rem;
 	--ui-duration: 80ms;
 	--ui-ease: cubic-bezier(0.2, 0, 0, 1);
+	/* 現れる動き (ヘッダー・タイル・通知・ダイアログ)。素早く出て、終わりをゆっくり */
+	--ui-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 	--pico-transition: var(--ui-duration) var(--ui-ease);
 
 	/* 本文の字。ボタンの中でも本文の色のまま (`--pico-color` はボタンの中で書き換わる) */
@@ -145,10 +147,16 @@
 	--ui-shadow-pop:
 		0 4px 12px rgb(24 28 37 / 0.08), 0 16px 32px -8px rgb(24 28 37 / 0.16);
 	--ui-backdrop: rgb(24 28 37 / 0.16);
+	/* 読み込み中のタイルの上を流れる光の筋。白い地の上でも見えるよう、明るいほうは濃く */
+	--ui-sweep: rgb(255 255 255 / 0.65);
 	--pico-background-color: var(--ui-bg);
 	--pico-muted-border-color: var(--ui-line);
 	--pico-table-border-color: transparent;
 }
+/*
+ * 暗いほう。OS が暗く、明るいほうを選んでいないとき (テーマの切り替えが「OSに合わせる」)
+ * と、暗いほうを選んだとき (`<html data-theme="dark">`) の両方に同じ値を置く
+ */
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme="light"]) {
 		--ui-bg: #0b0c0f;
@@ -165,7 +173,34 @@
 		--ui-shadow-pop:
 			0 4px 12px rgb(0 0 0 / 0.3), 0 16px 40px -8px rgb(0 0 0 / 0.5);
 		--ui-backdrop: rgb(0 0 0 / 0.45);
+		--ui-sweep: rgb(255 255 255 / 0.06);
 	}
+}
+:root[data-theme="dark"] {
+	--ui-bg: #0b0c0f;
+	--ui-surface: #121318;
+	--ui-subtle: #1a1b20;
+	--ui-line: #26282e;
+	--ui-pop: #1f2026;
+	--ui-muted: #9aa3b5;
+	--ui-primary-text: var(--pico-primary);
+	--ui-err-text: #f38f79;
+	--ui-item: #16171c;
+	--ui-item-shadow: none;
+	--ui-shadow-pop:
+		0 4px 12px rgb(0 0 0 / 0.3), 0 16px 40px -8px rgb(0 0 0 / 0.5);
+	--ui-backdrop: rgb(0 0 0 / 0.45);
+	--ui-sweep: rgb(255 255 255 / 0.06);
+}
+/* スクロールバーや入力欄など、ブラウザが描く部品もテーマに合わせる */
+:root {
+	color-scheme: light dark;
+}
+:root[data-theme="light"] {
+	color-scheme: light;
+}
+:root[data-theme="dark"] {
+	color-scheme: dark;
 }
 @media (prefers-reduced-transparency: reduce) {
 	:root {
@@ -187,6 +222,10 @@ html {
 }
 body {
 	background: var(--ui-bg);
+	/* テーマを切り替えたとき、地と字の色がふわっと移る */
+	transition:
+		background-color 240ms var(--ui-ease),
+		color 240ms var(--ui-ease);
 	/* 日本語を文節で折り返す */
 	word-break: auto-phrase;
 	line-break: strict;
@@ -521,11 +560,72 @@ tbody tr :is(td:last-child) {
 		transform: rotate(360deg);
 	}
 }
+/*
+ * ---- 動き (CSS だけ。JS では動かさない) ----
+ * 状態が変わったとき (乗せた・押した) は 80ms (`--ui-duration`)。現れるもの (ヘッダー・
+ * タイル・通知・ダイアログ) だけ、少し長めにふわっと出す (`--ui-ease-out`)。
+ * 動かすのは opacity と transform だけ (レイアウトを組み直さないので軽い)
+ */
+@keyframes ui-drop {
+	from {
+		opacity: 0;
+		transform: translateY(-0.75rem);
+	}
+}
+@keyframes ui-rise {
+	from {
+		opacity: 0;
+		transform: translateY(0.75rem);
+	}
+}
+@keyframes ui-pop {
+	from {
+		opacity: 0;
+		transform: scale(0.94);
+	}
+}
+@keyframes ui-fade {
+	from {
+		opacity: 0;
+	}
+}
+/* 下線などが真ん中から伸びる */
+@keyframes ui-grow {
+	from {
+		transform: scaleX(0);
+	}
+}
+/* 読み込み中の面の上を、光の筋が左から右へ流れる */
+@keyframes ui-shine {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		transform: translateX(100%);
+	}
+}
+/* 確かめを待っているものを、小さく左右に揺らす */
+@keyframes ui-nudge {
+	20%,
+	60% {
+		transform: translateX(-2px);
+	}
+	40%,
+	80% {
+		transform: translateX(2px);
+	}
+}
+
+/* 動きを減らす設定では、移り変わりも現れる動きも全部止める */
 @media (prefers-reduced-motion: reduce) {
 	:root {
 		--ui-duration: 0s;
 	}
-	.spin {
-		animation: none;
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0s !important;
 	}
 }
