@@ -1,5 +1,6 @@
 <script lang="ts">
 import { copyText, lgtmImgTag } from "#lib/clipboard.js";
+import { makeLgtm } from "#lib/lgtm/index.js";
 import { setMessage } from "#lib/stores/toast.svelte.js";
 import { refreshAll } from "$app/navigation";
 
@@ -14,8 +15,11 @@ const dragging = $derived(depth > 0);
 async function upload(files: FileList) {
 	try {
 		isGenerating = true;
+		// Converted and stamped here, in the browser; the server only checks
+		// and stores what it is sent.
 		const formData = new FormData();
-		for (const file of files) formData.append("files", file);
+		for (const file of await makeLgtm([...files]))
+			formData.append("files", file);
 		const res = await fetch("/lgtm/upload", { method: "POST", body: formData });
 		if (!res.ok) throw new Error("upload failed");
 		const { files: created }: { files: string[] } = await res.json();

@@ -1,56 +1,50 @@
 import { unlinkSync } from "node:fs";
-import sharp from "sharp";
 import db from "./db";
 import { generateUniqueKey } from "./key";
+import { webpSize } from "./webp";
 
-/** The file names written, in the order they were given. */
+/** Uploads are made no larger than this on each side by the browser. */
+const MAX_SIDE = 960;
+/**
+ * Per file. The largest animation stored so far is about 4MB at 500px; this
+ * leaves room for a long one at full size without taking just anything.
+ */
+const MAX_BYTES = 30 * 1024 * 1024;
+
+/** An upload that is not a WebP the browser could have made. */
+export class InvalidImageError extends Error {}
+
+/**
+ * Stores files the browser has already converted and stamped with LGTM, and
+ * answers with their names in the order given. The server no longer decodes
+ * or re-encodes anything; it checks each file is a well-formed WebP within
+ * the size limits and keeps it as is. What it cannot check is that the LGTM
+ * is actually on it -- an account that uploads bare images is dealt with by
+ * deleting them. Every file is checked before any is written, so a batch with
+ * one bad file leaves nothing behind.
+ */
 export async function create(
 	files: File[],
 	userKey: string,
 ): Promise<string[]> {
-	const lgtmSource = await Bun.file("assets/lgtm.webp").arrayBuffer();
-	const created: string[] = [];
+	const checked: { bytes: Uint8Array; width: number; height: number }[] = [];
 	for (const file of files) {
-		const fileName = `${await generateUniqueKey((k) => Bun.file(`images/${k}.webp`).exists())}.webp`;
-		const buffer = await sharp(await file.arrayBuffer(), { animated: true })
-			.resize({
-				width: 960,
-				height: 960,
-				fit: "inside",
-			})
-			.rotate()
-			.webp({ quality: 80 })
-			.toBuffer();
-		const image = sharp(buffer);
-		const metadata = await image.metadata();
-		const lgtm = await sharp(lgtmSource)
-			.resize({
-				width: metadata.width,
-				height: metadata.height,
-				fit: "contain",
-				background: { r: 0, g: 0, b: 0, alpha: 0 },
-			})
-			.toBuffer();
+		if (file.size > MAX_BYTES) throw new InvalidImageError("too large");
+		const bytes = new Uint8Array(await file.arrayBuffer());
+		const size = webpSize(bytes);
+		if (!size) throw new InvalidImageError("not a webp");
+		if (size.width > MAX_SIDE || size.height > MAX_SIDE)
+			throw new InvalidImageError("too many pixels");
+		checked.push({ bytes, ...size });
+	}
 
-		await sharp(buffer, { animated: true })
-			.composite([
-				{
-					input: lgtm,
-					tile: true,
-					top: 0,
-					left: 0,
-				},
-			])
-			.toFile(`images/${fileName}`);
+	const created: string[] = [];
+	for (const { bytes, width, height } of checked) {
+		const fileName = `${await generateUniqueKey((k) => Bun.file(`images/${k}.webp`).exists())}.webp`;
+		await Bun.write(`images/${fileName}`, bytes);
 		db().run(
 			"INSERT INTO lImage (fileName, userKey, createdAt, width, height) VALUES (?, ?, ?, ?, ?)",
-			[
-				fileName,
-				userKey,
-				Date.now(),
-				metadata.width ?? null,
-				metadata.height ?? null,
-			],
+			[fileName, userKey, Date.now(), width, height],
 		);
 		created.push(fileName);
 	}
@@ -92,9 +86,8 @@ export function deleteAllImages(userKey: string): number {
 }
 
 /**
- * Reads the size off disk for rows stored before sizes were recorded. Opened
- * without animated, as create() does, so an animation reports one frame
- * rather than the whole strip.
+ * Reads the size off disk for rows stored before sizes were recorded. Every
+ * stored file is a WebP, so the header says it without decoding anything.
  */
 export async function backfillImageSizes(): Promise<void> {
 	const rows = db()
@@ -104,10 +97,11 @@ export async function backfillImageSizes(): Promise<void> {
 		.all();
 	for (const { fileName } of rows) {
 		try {
-			const { width, height } = await sharp(`images/${fileName}`).metadata();
+			const size = webpSize(await Bun.file(`images/${fileName}`).bytes());
+			if (!size) continue;
 			db().run("UPDATE lImage SET width = ?, height = ? WHERE fileName = ?", [
-				width,
-				height,
+				size.width,
+				size.height,
 				fileName,
 			]);
 		} catch {

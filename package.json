@@ -9,9 +9,6 @@
 		"start": "bun ./build",
 		"check": "biome check --write && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --tsgo"
 	},
-	"dependencies": {
-		"sharp": "^0.35.5"
-	},
 	"devDependencies": {
 		"@anyblades/blades": "3.1.0-beta.5",
 		"@biomejs/biome": "^2.6.2",
@@ -21,14 +18,13 @@
 		"@types/bun": "^1.4.4",
 		"@types/node": "^26.6.5",
 		"@typescript/native": "npm:typescript@7",
+		"gifuct-js": "2.1.2",
 		"svelte": "^5.57.2",
 		"svelte-check": "^4.7.7",
 		"typescript": "~6.0.3",
-		"vite": "^8.3.5"
+		"vite": "^8.3.5",
+		"wasm-webp": "0.1.0"
 	},
-	"trustedDependencies": [
-		"sharp"
-	],
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
