@@ -64,6 +64,15 @@ GitHub のみです。𝕏 でのログインは xool から分離したとき�
 ./scripts/build-wasm.sh wslc   # docker の代わりに wslc
 ```
 
+CI (Docker Build Check) はイメージをビルドしたあと起動し、Chromium で PNG と GIF を
+実際に WebP へ変換できるか確かめます (`tests/wasm.spec.ts`)。emsdk の更新は自動で
+マージされるので、ビルドが通るだけでなく wasm が動くことまでここで見ます。手元では
+ビルドしたイメージを起動して、それに対して流せます (`BASE_URL` で向き先を変えられます)。
+
+```sh
+bunx playwright test  # http://localhost:3000
+```
+
 ### 各自の設定
 
 `compose.yml` は全員共通で、直接編集しません。手元だけの設定は
