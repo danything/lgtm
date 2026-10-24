@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { browser } from "$app/env";
+  import { afterNavigate, beforeNavigate } from "$app/navigation";
+  import { page, updated } from "$app/state";
+
   import SignInButton from "#lib/components/SignInButton.svelte";
   import ThemeToggle from "#lib/components/ThemeToggle.svelte";
   import Toast from "#lib/components/Toast.svelte";
   import Upload from "#lib/components/Upload.svelte";
-  import { browser } from "$app/env";
-  import { afterNavigate, beforeNavigate } from "$app/navigation";
-  import { page, updated } from "$app/state";
   import "../app.css";
 
   let { children, data } = $props();

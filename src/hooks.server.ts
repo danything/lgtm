@@ -1,4 +1,5 @@
 import type { Handle, ServerInit } from "@sveltejs/kit/hooks";
+
 import { backfillImageSizes } from "#lib/server/lgtm.js";
 import { parseTheme, THEME_COOKIE, themeAttribute } from "#lib/theme.js";
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { THEME_COOKIE, type Theme } from "#lib/theme.js";
+
+  import { type Theme, THEME_COOKIE } from "#lib/theme.js";
 
   let { initial }: { initial: Theme } = $props();
 

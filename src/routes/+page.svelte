@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { page } from "$app/state";
+
   import ErrorAlert from "#lib/components/ErrorAlert.svelte";
   import Gallery from "#lib/components/Gallery.svelte";
-  import { page } from "$app/state";
+
   import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();

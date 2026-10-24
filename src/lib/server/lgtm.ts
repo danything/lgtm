@@ -1,4 +1,5 @@
 import { unlinkSync } from "node:fs";
+
 import db from "./db";
 import { generateUniqueKey } from "./key";
 import { webpSize } from "./webp";

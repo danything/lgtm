@@ -1,5 +1,6 @@
 <script lang="ts">
   import Gallery from "#lib/components/Gallery.svelte";
+
   import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();

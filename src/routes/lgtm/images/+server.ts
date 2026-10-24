@@ -1,6 +1,8 @@
 import { json } from "@sveltejs/kit";
+
 import { PER_PAGE } from "#lib/paging.js";
 import { get } from "#lib/server/lgtm.js";
+
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
