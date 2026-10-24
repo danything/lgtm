@@ -6,6 +6,6 @@ import wasmUrl from "./vendor/lgtm-wasm.wasm?url";
 let instance: Promise<LgtmWasm> | undefined;
 
 export const loadWasm = () => {
-	instance ??= factory({ locateFile: () => wasmUrl });
-	return instance;
+  instance ??= factory({ locateFile: () => wasmUrl });
+  return instance;
 };

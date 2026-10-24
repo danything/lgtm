@@ -64,63 +64,63 @@
  * テーマは OS の設定に従う (Pico と同じ条件で暗いほうに切り替える)
  */
 :root {
-	/* フォントは束ねない(1 家族 1.3MB を全員に落とさせる価値が無い)。Windows なら
+  /* フォントは束ねない(1 家族 1.3MB を全員に落とさせる価値が無い)。Windows なら
 	   BIZ UDPGothic、mac なら ヒラギノ、それ以外は OS の日本語フォント */
-	--pico-font-family-sans-serif:
-		"BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", system-ui,
-		sans-serif;
-	--pico-font-family-monospace:
-		ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
-	--pico-font-size: 16px;
-	--pico-line-height: 1.6;
-	--pico-spacing: 1rem;
-	--pico-typography-spacing-vertical: 0.75rem;
-	--pico-form-element-spacing-vertical: 0.45rem;
-	--pico-form-element-spacing-horizontal: 0.75rem;
-	/*
+  --pico-font-family-sans-serif:
+    "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", system-ui,
+    sans-serif;
+  --pico-font-family-monospace:
+    ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+  --pico-font-size: 16px;
+  --pico-line-height: 1.6;
+  --pico-spacing: 1rem;
+  --pico-typography-spacing-vertical: 0.75rem;
+  --pico-form-element-spacing-vertical: 0.45rem;
+  --pico-form-element-spacing-horizontal: 0.75rem;
+  /*
 	 * 中身の幅。本文 65ch を、BIZ UDPGothic で描いたときの実寸で固定した値。
 	 * `ch` はフォントの `0` の幅で、BIZ UDPGothic は約 0.76em、代替の sans-serif は
 	 * 約 0.56em -- ch のままだと 1.3MB の日本語サブセットが届くまで 210px ほど狭く
 	 * 描かれ、届いた瞬間に跳ねる
 	 */
-	--ui-width: 49.5rem;
+  --ui-width: 49.5rem;
 
-	/* ---- 形。角丸・字・動きはこの段から選ぶ ---- */
-	--ui-radius: 0.5rem;
-	--ui-radius-lg: 0.75rem;
-	--ui-radius-full: 999px;
-	--pico-border-radius: var(--ui-radius);
-	/* 件の面の角。中の角 (`--ui-radius`) と件の余白 (0.5rem) の入れ子 */
-	--ui-item-radius: calc(var(--ui-radius) + 0.5rem);
-	--ui-text-xs: 0.75rem;
-	--ui-text-sm: 0.875rem;
-	--ui-duration: 80ms;
-	--ui-ease: cubic-bezier(0.2, 0, 0, 1);
-	/* 現れる動き (ヘッダー・タイル・通知・ダイアログ)。素早く出て、終わりをゆっくり */
-	--ui-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-	--pico-transition: var(--ui-duration) var(--ui-ease);
+  /* ---- 形。角丸・字・動きはこの段から選ぶ ---- */
+  --ui-radius: 0.5rem;
+  --ui-radius-lg: 0.75rem;
+  --ui-radius-full: 999px;
+  --pico-border-radius: var(--ui-radius);
+  /* 件の面の角。中の角 (`--ui-radius`) と件の余白 (0.5rem) の入れ子 */
+  --ui-item-radius: calc(var(--ui-radius) + 0.5rem);
+  --ui-text-xs: 0.75rem;
+  --ui-text-sm: 0.875rem;
+  --ui-duration: 80ms;
+  --ui-ease: cubic-bezier(0.2, 0, 0, 1);
+  /* 現れる動き (ヘッダー・タイル・通知・ダイアログ)。素早く出て、終わりをゆっくり */
+  --ui-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --pico-transition: var(--ui-duration) var(--ui-ease);
 
-	/* 本文の字。ボタンの中でも本文の色のまま (`--pico-color` はボタンの中で書き換わる) */
-	--ui-fg: var(--pico-color);
-	/* 状態の色は赤だけ (戻せない操作・問題) */
-	--ui-err: #d93526; /* red-500 */
-	/*
+  /* 本文の字。ボタンの中でも本文の色のまま (`--pico-color` はボタンの中で書き換わる) */
+  --ui-fg: var(--pico-color);
+  /* 状態の色は赤だけ (戻せない操作・問題) */
+  --ui-err: #d93526; /* red-500 */
+  /*
 	 * **操作の層の面** (ヘッダー・主のボタン)。メニューと同じ面を 92% 残し、下を流れる
 	 * 画像をうっすら見せる。ぼかさない (重い)。透かしを減らす設定では透かさない (下)
 	 */
-	--ui-float: color-mix(in srgb, var(--ui-pop) 92%, transparent);
-	/* 指を乗せた地。地の上の 1 行の並び (タブ・字だけのボタン) */
-	--ui-hover-soft: color-mix(in srgb, var(--ui-subtle) 55%, transparent);
+  --ui-float: color-mix(in srgb, var(--ui-pop) 92%, transparent);
+  /* 指を乗せた地。地の上の 1 行の並び (タブ・字だけのボタン) */
+  --ui-hover-soft: color-mix(in srgb, var(--ui-subtle) 55%, transparent);
 
-	/*
+  /*
 	 * **画像の上の色。** 下にあるのは地の色ではなく任意の画像なので、テーマで変えない。
 	 * 字とアイコンは白、戻せないものの 2 回目は明るい赤。並びの裏には端から消えていく
 	 * 黒い影を敷いて、明るい画像の上でも読めるようにする
 	 */
-	--ui-on-media: #fff;
-	--ui-on-media-hover: rgb(255 255 255 / 0.16);
-	--ui-on-media-danger: #ff8a7a;
-	--ui-media-shade: rgb(0 0 0 / 0.55);
+  --ui-on-media: #fff;
+  --ui-on-media-hover: rgb(255 255 255 / 0.16);
+  --ui-on-media-danger: #ff8a7a;
+  --ui-media-shade: rgb(0 0 0 / 0.55);
 }
 /*
  * テーマごとの色。画面の側は変数だけを使う
@@ -133,107 +133,107 @@
  * - `--ui-shadow-pop` 浮かぶもの・`--ui-backdrop` ダイアログの後ろの幕 (ぼかさない)
  */
 :root {
-	--ui-bg: #fff;
-	--ui-surface: #fff;
-	--ui-subtle: #eff1f4; /* slate-50 */
-	--ui-line: #dfe3eb; /* slate-100 */
-	--ui-pop: #fff;
-	--ui-muted: #555e70; /* 白と淡い面のどちらでも 4.5 以上 */
-	--ui-primary-text: #02659a; /* azure-600 */
-	--ui-err-text: #9b2318; /* red-650 */
-	--ui-item: #fff;
-	--ui-item-shadow:
-		0 1px 2px rgb(24 28 37 / 0.08), 0 2px 8px rgb(24 28 37 / 0.06);
-	--ui-shadow-pop:
-		0 4px 12px rgb(24 28 37 / 0.08), 0 16px 32px -8px rgb(24 28 37 / 0.16);
-	--ui-backdrop: rgb(24 28 37 / 0.16);
-	/* 読み込み中のタイルの上を流れる光の筋。白い地の上でも見えるよう、明るいほうは濃く */
-	--ui-sweep: rgb(255 255 255 / 0.65);
-	--pico-background-color: var(--ui-bg);
-	--pico-muted-border-color: var(--ui-line);
-	--pico-table-border-color: transparent;
+  --ui-bg: #fff;
+  --ui-surface: #fff;
+  --ui-subtle: #eff1f4; /* slate-50 */
+  --ui-line: #dfe3eb; /* slate-100 */
+  --ui-pop: #fff;
+  --ui-muted: #555e70; /* 白と淡い面のどちらでも 4.5 以上 */
+  --ui-primary-text: #02659a; /* azure-600 */
+  --ui-err-text: #9b2318; /* red-650 */
+  --ui-item: #fff;
+  --ui-item-shadow:
+    0 1px 2px rgb(24 28 37 / 0.08), 0 2px 8px rgb(24 28 37 / 0.06);
+  --ui-shadow-pop:
+    0 4px 12px rgb(24 28 37 / 0.08), 0 16px 32px -8px rgb(24 28 37 / 0.16);
+  --ui-backdrop: rgb(24 28 37 / 0.16);
+  /* 読み込み中のタイルの上を流れる光の筋。白い地の上でも見えるよう、明るいほうは濃く */
+  --ui-sweep: rgb(255 255 255 / 0.65);
+  --pico-background-color: var(--ui-bg);
+  --pico-muted-border-color: var(--ui-line);
+  --pico-table-border-color: transparent;
 }
 /*
  * 暗いほう。OS が暗く、明るいほうを選んでいないとき (テーマの切り替えが「OSに合わせる」)
  * と、暗いほうを選んだとき (`<html data-theme="dark">`) の両方に同じ値を置く
  */
 @media (prefers-color-scheme: dark) {
-	:root:not([data-theme="light"]) {
-		--ui-bg: #0b0c0f;
-		--ui-surface: #121318;
-		--ui-subtle: #1a1b20;
-		--ui-line: #26282e;
-		/* 黒い地では影が見えないので、浮かぶ面は地より明るくして縁を見せる */
-		--ui-pop: #1f2026;
-		--ui-muted: #9aa3b5;
-		--ui-primary-text: var(--pico-primary);
-		--ui-err-text: #f38f79; /* red-300 */
-		--ui-item: #16171c;
-		--ui-item-shadow: none;
-		--ui-shadow-pop:
-			0 4px 12px rgb(0 0 0 / 0.3), 0 16px 40px -8px rgb(0 0 0 / 0.5);
-		--ui-backdrop: rgb(0 0 0 / 0.45);
-		--ui-sweep: rgb(255 255 255 / 0.06);
-	}
+  :root:not([data-theme="light"]) {
+    --ui-bg: #0b0c0f;
+    --ui-surface: #121318;
+    --ui-subtle: #1a1b20;
+    --ui-line: #26282e;
+    /* 黒い地では影が見えないので、浮かぶ面は地より明るくして縁を見せる */
+    --ui-pop: #1f2026;
+    --ui-muted: #9aa3b5;
+    --ui-primary-text: var(--pico-primary);
+    --ui-err-text: #f38f79; /* red-300 */
+    --ui-item: #16171c;
+    --ui-item-shadow: none;
+    --ui-shadow-pop:
+      0 4px 12px rgb(0 0 0 / 0.3), 0 16px 40px -8px rgb(0 0 0 / 0.5);
+    --ui-backdrop: rgb(0 0 0 / 0.45);
+    --ui-sweep: rgb(255 255 255 / 0.06);
+  }
 }
 :root[data-theme="dark"] {
-	--ui-bg: #0b0c0f;
-	--ui-surface: #121318;
-	--ui-subtle: #1a1b20;
-	--ui-line: #26282e;
-	--ui-pop: #1f2026;
-	--ui-muted: #9aa3b5;
-	--ui-primary-text: var(--pico-primary);
-	--ui-err-text: #f38f79;
-	--ui-item: #16171c;
-	--ui-item-shadow: none;
-	--ui-shadow-pop:
-		0 4px 12px rgb(0 0 0 / 0.3), 0 16px 40px -8px rgb(0 0 0 / 0.5);
-	--ui-backdrop: rgb(0 0 0 / 0.45);
-	--ui-sweep: rgb(255 255 255 / 0.06);
+  --ui-bg: #0b0c0f;
+  --ui-surface: #121318;
+  --ui-subtle: #1a1b20;
+  --ui-line: #26282e;
+  --ui-pop: #1f2026;
+  --ui-muted: #9aa3b5;
+  --ui-primary-text: var(--pico-primary);
+  --ui-err-text: #f38f79;
+  --ui-item: #16171c;
+  --ui-item-shadow: none;
+  --ui-shadow-pop:
+    0 4px 12px rgb(0 0 0 / 0.3), 0 16px 40px -8px rgb(0 0 0 / 0.5);
+  --ui-backdrop: rgb(0 0 0 / 0.45);
+  --ui-sweep: rgb(255 255 255 / 0.06);
 }
 /* スクロールバーや入力欄など、ブラウザが描く部品もテーマに合わせる */
 :root {
-	color-scheme: light dark;
+  color-scheme: light dark;
 }
 :root[data-theme="light"] {
-	color-scheme: light;
+  color-scheme: light;
 }
 :root[data-theme="dark"] {
-	color-scheme: dark;
+  color-scheme: dark;
 }
 @media (prefers-reduced-transparency: reduce) {
-	:root {
-		--ui-float: var(--ui-pop);
-	}
+  :root {
+    --ui-float: var(--ui-pop);
+  }
 }
 
 html {
-	font-size: var(--pico-font-size);
-	/* 元の app.html が付けていた antialiased の分 */
-	-webkit-font-smoothing: antialiased;
-	/*
+  font-size: var(--pico-font-size);
+  /* 元の app.html が付けていた antialiased の分 */
+  -webkit-font-smoothing: antialiased;
+  /*
 	 * スクロールバーの幅を最初から空けておく。最初の 12 枚が画面に収まると
 	 * スクロールバーが無く、続きを読み込んで初めて出てきた瞬間に本文の幅が
 	 * 縮んで、タイルの並びが全部組み直されていた。画面に重ねて出るスクロール
 	 * バー(macOS・スマホ)ではもともと幅を取らないので、何も変わらない。
 	 */
-	scrollbar-gutter: stable;
+  scrollbar-gutter: stable;
 }
 body {
-	background: var(--ui-bg);
-	/* テーマを切り替えたとき、地と字の色がふわっと移る */
-	transition:
-		background-color 240ms var(--ui-ease),
-		color 240ms var(--ui-ease);
-	/* 日本語を文節で折り返す */
-	word-break: auto-phrase;
-	line-break: strict;
+  background: var(--ui-bg);
+  /* テーマを切り替えたとき、地と字の色がふわっと移る */
+  transition:
+    background-color 240ms var(--ui-ease),
+    color 240ms var(--ui-ease);
+  /* 日本語を文節で折り返す */
+  word-break: auto-phrase;
+  line-break: strict;
 }
 p,
 li,
 dd {
-	text-wrap: pretty;
+  text-wrap: pretty;
 }
 
 /* Pico は段落・入力欄の下に大きな余白を付ける。並べ方は各画面の gap で決めるので外す */
@@ -262,38 +262,38 @@ details,
 article,
 blockquote,
 hgroup {
-	margin-bottom: 0;
+  margin-bottom: 0;
 }
 h1,
 h2,
 h3,
 h4 {
-	--pico-font-weight: 700;
-	line-height: 1.3;
+  --pico-font-weight: 700;
+  line-height: 1.3;
 }
 h1 {
-	font-size: 1.5rem;
+  font-size: 1.5rem;
 }
 h2 {
-	font-size: 1.125rem;
+  font-size: 1.125rem;
 }
 h3,
 h4 {
-	font-size: 1rem;
+  font-size: 1rem;
 }
 
 /* ---- 幅 ---- */
 .page {
-	width: 100%;
-	max-width: var(--ui-width);
-	margin-inline: auto;
-	padding-inline: 1rem;
+  width: 100%;
+  max-width: var(--ui-width);
+  margin-inline: auto;
+  padding-inline: 1rem;
 }
 
 /* ---- 焦点。キーボードで触っているところだけ、外側の 2px の線 ---- */
 :focus-visible {
-	outline: 2px solid var(--pico-primary);
-	outline-offset: 2px;
+  outline: 2px solid var(--pico-primary);
+  outline-offset: 2px;
 }
 
 /*
@@ -312,102 +312,102 @@ h4 {
  * :hover / :focus の色はここで全部上書きされる
  */
 :root {
-	--ui-btn-solid: var(--ui-float);
-	--ui-btn-solid-hover: var(--ui-pop);
-	--ui-btn-lift: var(--ui-shadow-pop);
-	--ui-btn-h: 2.5rem;
-	--ui-btn-h-xs: 1.75rem;
+  --ui-btn-solid: var(--ui-float);
+  --ui-btn-solid-hover: var(--ui-pop);
+  --ui-btn-lift: var(--ui-shadow-pop);
+  --ui-btn-h: 2.5rem;
+  --ui-btn-h-xs: 1.75rem;
 }
 @media (pointer: coarse) {
-	:root {
-		--ui-btn-h-xs: 2.5rem;
-	}
+  :root {
+    --ui-btn-h-xs: 2.5rem;
+  }
 }
 :where(nav, dialog, table) {
-	--ui-btn-solid: transparent;
-	--ui-btn-solid-hover: var(--ui-hover-soft);
-	--ui-btn-lift: none;
+  --ui-btn-solid: transparent;
+  --ui-btn-solid-hover: var(--ui-hover-soft);
+  --ui-btn-lift: none;
 }
 :where(button, [type="button"], [type="submit"], [role="button"], a.button) {
-	--pico-background-color: var(--ui-btn-solid);
-	--pico-border-color: transparent;
-	--pico-color: var(--ui-fg);
-	--pico-box-shadow: var(--ui-btn-lift);
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.4rem;
-	min-height: var(--ui-btn-h);
-	border-radius: var(--ui-radius-full);
-	padding-block: 0;
-	padding-inline: 0.875rem;
-	font-size: var(--ui-text-sm);
-	font-weight: 700;
-	white-space: nowrap;
-	transition:
-		background-color var(--ui-duration) var(--ui-ease),
-		box-shadow var(--ui-duration) var(--ui-ease),
-		transform var(--ui-duration) var(--ui-ease);
+  --pico-background-color: var(--ui-btn-solid);
+  --pico-border-color: transparent;
+  --pico-color: var(--ui-fg);
+  --pico-box-shadow: var(--ui-btn-lift);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--ui-btn-h);
+  border-radius: var(--ui-radius-full);
+  padding-block: 0;
+  padding-inline: 0.875rem;
+  font-size: var(--ui-text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background-color var(--ui-duration) var(--ui-ease),
+    box-shadow var(--ui-duration) var(--ui-ease),
+    transform var(--ui-duration) var(--ui-ease);
 }
 :where(
-	button,
-	[type="button"],
-	[type="submit"],
-	[role="button"],
-	a.button
+  button,
+  [type="button"],
+  [type="submit"],
+  [role="button"],
+  a.button
 ):where(:hover) {
-	--pico-background-color: var(--ui-btn-solid-hover);
-	--pico-color: var(--ui-fg);
+  --pico-background-color: var(--ui-btn-solid-hover);
+  --pico-color: var(--ui-fg);
 }
 :where(
-	button,
-	[type="button"],
-	[type="submit"],
-	[role="button"],
-	a.button
+  button,
+  [type="button"],
+  [type="submit"],
+  [role="button"],
+  a.button
 ):where(:active:not(:disabled)) {
-	transform: scale(0.97);
+  transform: scale(0.97);
 }
 /* リンクのままボタンの見た目にする (role="button" にするとリンクでなくなる) */
 a.button {
-	border: var(--pico-border-width) solid var(--pico-border-color);
-	background-color: var(--pico-background-color);
-	box-shadow: var(--pico-box-shadow);
-	color: var(--pico-color);
-	text-decoration: none;
-	cursor: pointer;
+  border: var(--pico-border-width) solid var(--pico-border-color);
+  background-color: var(--pico-background-color);
+  box-shadow: var(--pico-box-shadow);
+  color: var(--pico-color);
+  text-decoration: none;
+  cursor: pointer;
 }
 :where(button, a.button).ghost,
 :where(button, a.button).outline {
-	--pico-background-color: transparent;
-	--pico-box-shadow: none;
+  --pico-background-color: transparent;
+  --pico-box-shadow: none;
 }
 :where(button, a.button):is(.ghost, .outline):where(:hover) {
-	--pico-background-color: var(--ui-hover-soft);
+  --pico-background-color: var(--ui-hover-soft);
 }
 :where(button, a.button):is(.ghost, .outline):where(:active) {
-	transform: none;
+  transform: none;
 }
 :where(button, a.button).danger {
-	--pico-color: var(--ui-err-text);
+  --pico-color: var(--ui-err-text);
 }
 :where(button, a.button).outline.danger {
-	--pico-color: var(--ui-muted);
-	font-weight: 400;
+  --pico-color: var(--ui-muted);
+  font-weight: 400;
 }
 :where(button, a.button).outline.danger:where(:hover) {
-	--pico-color: var(--ui-err-text);
+  --pico-color: var(--ui-err-text);
 }
 /* 小さいボタン (表の中)。指で押す端末では小さくしない */
 :where(button, a.button).xs {
-	min-height: var(--ui-btn-h-xs);
-	padding-inline: 0.625rem;
-	font-size: var(--ui-text-xs);
+  min-height: var(--ui-btn-h-xs);
+  padding-inline: 0.625rem;
+  font-size: var(--ui-text-xs);
 }
 /* アイコンだけのボタン。円 */
 :where(button, a.button).icon {
-	width: var(--ui-btn-h);
-	padding: 0;
+  width: var(--ui-btn-h);
+  padding: 0;
 }
 
 /*
@@ -417,40 +417,40 @@ a.button {
  * 地を出す。戻せないものの 2 回目 (`.armed`) は明るい赤の字と下の短い赤い線
  */
 :where(button).on-media {
-	--pico-background-color: transparent;
-	--pico-box-shadow: none;
-	--pico-color: var(--ui-on-media);
-	width: var(--ui-btn-h);
-	padding: 0;
-	filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.6));
+  --pico-background-color: transparent;
+  --pico-box-shadow: none;
+  --pico-color: var(--ui-on-media);
+  width: var(--ui-btn-h);
+  padding: 0;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.6));
 }
 :where(button).on-media:where(:hover, :focus-visible) {
-	--pico-background-color: var(--ui-on-media-hover);
-	--pico-color: var(--ui-on-media);
+  --pico-background-color: var(--ui-on-media-hover);
+  --pico-color: var(--ui-on-media);
 }
 :where(button).on-media.armed {
-	--pico-color: var(--ui-on-media-danger);
-	background-image: linear-gradient(
-		var(--ui-on-media-danger),
-		var(--ui-on-media-danger)
-	);
-	background-repeat: no-repeat;
-	background-position: center bottom 0.25rem;
-	background-size: 1rem 2px;
+  --pico-color: var(--ui-on-media-danger);
+  background-image: linear-gradient(
+    var(--ui-on-media-danger),
+    var(--ui-on-media-danger)
+  );
+  background-repeat: no-repeat;
+  background-position: center bottom 0.25rem;
+  background-size: 1rem 2px;
 }
 :where(button).on-media:where(:hover).armed {
-	--pico-color: var(--ui-on-media-danger);
+  --pico-color: var(--ui-on-media-danger);
 }
 .on-media svg {
-	width: 1.375rem;
-	height: 1.375rem;
+  width: 1.375rem;
+  height: 1.375rem;
 }
 
 /* ---- 件の面 (地より一段上の面。縁は付けない) ---- */
 .item {
-	border-radius: var(--ui-item-radius);
-	background: var(--ui-item);
-	box-shadow: var(--ui-item-shadow);
+  border-radius: var(--ui-item-radius);
+  background: var(--ui-item);
+  box-shadow: var(--ui-item-shadow);
 }
 
 /*
@@ -458,107 +458,107 @@ a.button {
  * 地を塗らず、印 (アイコン) と言葉で伝える。問題だけ赤い印にする (色だけに頼らない)
  */
 .note {
-	display: flex;
-	align-items: center;
-	gap: 0.6rem;
-	border-radius: var(--ui-item-radius);
-	background: var(--ui-item);
-	box-shadow: var(--ui-item-shadow);
-	padding: 0.75rem 1rem;
-	font-size: var(--ui-text-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: var(--ui-item-radius);
+  background: var(--ui-item);
+  box-shadow: var(--ui-item-shadow);
+  padding: 0.75rem 1rem;
+  font-size: var(--ui-text-sm);
 }
 .note.err > svg {
-	color: var(--ui-err-text);
+  color: var(--ui-err-text);
 }
 
 /* ---- 札 (状態だけ。淡い地のカプセル) ---- */
 .tag {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.25rem;
-	border-radius: var(--ui-radius-full);
-	background: var(--ui-subtle);
-	padding: 0.1rem 0.6rem;
-	color: var(--ui-muted);
-	font-size: var(--ui-text-xs);
-	white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--ui-radius-full);
+  background: var(--ui-subtle);
+  padding: 0.1rem 0.6rem;
+  color: var(--ui-muted);
+  font-size: var(--ui-text-xs);
+  white-space: nowrap;
 }
 
 /* ---- 表。線で分けず、行は地のまま。乗せた行だけ薄い地 ---- */
 table {
-	font-size: var(--ui-text-sm);
+  font-size: var(--ui-text-sm);
 }
 th,
 td {
-	border: 0;
-	background: transparent;
-	padding: 0.5rem 0.75rem;
-	vertical-align: baseline;
+  border: 0;
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+  vertical-align: baseline;
 }
 thead th {
-	color: var(--ui-muted);
-	font-size: var(--ui-text-xs);
-	font-weight: 400;
-	white-space: nowrap;
+  color: var(--ui-muted);
+  font-size: var(--ui-text-xs);
+  font-weight: 400;
+  white-space: nowrap;
 }
 tbody tr {
-	transition: background-color var(--ui-duration) var(--ui-ease);
+  transition: background-color var(--ui-duration) var(--ui-ease);
 }
 tbody tr:hover {
-	background: var(--ui-hover-soft);
+  background: var(--ui-hover-soft);
 }
 tbody tr :is(td:first-child) {
-	border-start-start-radius: var(--ui-radius);
-	border-end-start-radius: var(--ui-radius);
+  border-start-start-radius: var(--ui-radius);
+  border-end-start-radius: var(--ui-radius);
 }
 tbody tr :is(td:last-child) {
-	border-start-end-radius: var(--ui-radius);
-	border-end-end-radius: var(--ui-radius);
+  border-start-end-radius: var(--ui-radius);
+  border-end-end-radius: var(--ui-radius);
 }
 /*
  * 表は狭い画面で横に流す。**列を潰させない。**
  * 幅が足りないとき、ブラウザは列を無理に狭めて1文字ずつ折り返す
  */
 .scroll-x {
-	overflow-x: auto;
+  overflow-x: auto;
 }
 .scroll-x > table {
-	min-width: 36rem;
+  min-width: 36rem;
 }
 
 /* ---- 小物 ---- */
 .muted {
-	color: var(--ui-muted);
+  color: var(--ui-muted);
 }
 .small {
-	font-size: var(--ui-text-sm);
+  font-size: var(--ui-text-sm);
 }
 .mono {
-	font-family: var(--pico-font-family-monospace);
+  font-family: var(--pico-font-family-monospace);
 }
 .cluster {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
 }
 .grow {
-	flex: 1 1 auto;
+  flex: 1 1 auto;
 }
 /* 読み込み中の丸。ボタンの中にも置ける (いま動いていることを示す印なので回し続ける) */
 .spin {
-	display: inline-block;
-	width: 1em;
-	height: 1em;
-	border: 2px solid currentColor;
-	border-right-color: transparent;
-	border-radius: var(--ui-radius-full);
-	animation: ui-spin 0.8s linear infinite;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--ui-radius-full);
+  animation: ui-spin 0.8s linear infinite;
 }
 @keyframes ui-spin {
-	to {
-		transform: rotate(360deg);
-	}
+  to {
+    transform: rotate(360deg);
+  }
 }
 /*
  * ---- 動き (CSS だけ。JS では動かさない) ----
@@ -567,65 +567,65 @@ tbody tr :is(td:last-child) {
  * 動かすのは opacity と transform だけ (レイアウトを組み直さないので軽い)
  */
 @keyframes ui-drop {
-	from {
-		opacity: 0;
-		transform: translateY(-0.75rem);
-	}
+  from {
+    opacity: 0;
+    transform: translateY(-0.75rem);
+  }
 }
 @keyframes ui-rise {
-	from {
-		opacity: 0;
-		transform: translateY(0.75rem);
-	}
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
 }
 @keyframes ui-pop {
-	from {
-		opacity: 0;
-		transform: scale(0.94);
-	}
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
 }
 @keyframes ui-fade {
-	from {
-		opacity: 0;
-	}
+  from {
+    opacity: 0;
+  }
 }
 /* 下線などが真ん中から伸びる */
 @keyframes ui-grow {
-	from {
-		transform: scaleX(0);
-	}
+  from {
+    transform: scaleX(0);
+  }
 }
 /* 読み込み中の面の上を、光の筋が左から右へ流れる */
 @keyframes ui-shine {
-	from {
-		transform: translateX(-100%);
-	}
-	to {
-		transform: translateX(100%);
-	}
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 /* 確かめを待っているものを、小さく左右に揺らす */
 @keyframes ui-nudge {
-	20%,
-	60% {
-		transform: translateX(-2px);
-	}
-	40%,
-	80% {
-		transform: translateX(2px);
-	}
+  20%,
+  60% {
+    transform: translateX(-2px);
+  }
+  40%,
+  80% {
+    transform: translateX(2px);
+  }
 }
 
 /* 動きを減らす設定では、移り変わりも現れる動きも全部止める */
 @media (prefers-reduced-motion: reduce) {
-	:root {
-		--ui-duration: 0s;
-	}
-	*,
-	*::before,
-	*::after {
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-		transition-duration: 0s !important;
-	}
+  :root {
+    --ui-duration: 0s;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+  }
 }

@@ -24,42 +24,42 @@ export class InvalidImageError extends Error {}
  * one bad file leaves nothing behind.
  */
 export async function create(
-	files: File[],
-	userKey: string,
+  files: File[],
+  userKey: string,
 ): Promise<string[]> {
-	const checked: { bytes: Uint8Array; width: number; height: number }[] = [];
-	for (const file of files) {
-		if (file.size > MAX_BYTES) throw new InvalidImageError("too large");
-		const bytes = new Uint8Array(await file.arrayBuffer());
-		const size = webpSize(bytes);
-		if (!size) throw new InvalidImageError("not a webp");
-		if (size.width > MAX_SIDE || size.height > MAX_SIDE)
-			throw new InvalidImageError("too many pixels");
-		checked.push({ bytes, ...size });
-	}
+  const checked: { bytes: Uint8Array; width: number; height: number }[] = [];
+  for (const file of files) {
+    if (file.size > MAX_BYTES) throw new InvalidImageError("too large");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const size = webpSize(bytes);
+    if (!size) throw new InvalidImageError("not a webp");
+    if (size.width > MAX_SIDE || size.height > MAX_SIDE)
+      throw new InvalidImageError("too many pixels");
+    checked.push({ bytes, ...size });
+  }
 
-	const created: string[] = [];
-	for (const { bytes, width, height } of checked) {
-		const fileName = `${await generateUniqueKey((k) => Bun.file(`images/${k}.webp`).exists())}.webp`;
-		await Bun.write(`images/${fileName}`, bytes);
-		db().run(
-			"INSERT INTO lImage (fileName, userKey, createdAt, width, height) VALUES (?, ?, ?, ?, ?)",
-			[fileName, userKey, Date.now(), width, height],
-		);
-		created.push(fileName);
-	}
-	return created;
+  const created: string[] = [];
+  for (const { bytes, width, height } of checked) {
+    const fileName = `${await generateUniqueKey((k) => Bun.file(`images/${k}.webp`).exists())}.webp`;
+    await Bun.write(`images/${fileName}`, bytes);
+    db().run(
+      "INSERT INTO lImage (fileName, userKey, createdAt, width, height) VALUES (?, ?, ?, ?, ?)",
+      [fileName, userKey, Date.now(), width, height],
+    );
+    created.push(fileName);
+  }
+  return created;
 }
 
 export function deleteFile(fileName: string, userKey: string): boolean {
-	const result = db().run(
-		"DELETE FROM lImage WHERE fileName = ? AND userKey = ?",
-		[fileName, userKey],
-	);
-	if (result.changes > 0) {
-		unlinkSync(`images/${fileName}`);
-	}
-	return result.changes > 0;
+  const result = db().run(
+    "DELETE FROM lImage WHERE fileName = ? AND userKey = ?",
+    [fileName, userKey],
+  );
+  if (result.changes > 0) {
+    unlinkSync(`images/${fileName}`);
+  }
+  return result.changes > 0;
 }
 
 /**
@@ -69,20 +69,20 @@ export function deleteFile(fileName: string, userKey: string): boolean {
  * tile that 404s.
  */
 export function deleteAllImages(userKey: string): number {
-	const rows = db()
-		.query<{ fileName: string }, [string]>(
-			"SELECT fileName FROM lImage WHERE userKey = ?",
-		)
-		.all(userKey);
-	db().run("DELETE FROM lImage WHERE userKey = ?", [userKey]);
-	for (const { fileName } of rows) {
-		try {
-			unlinkSync(`images/${fileName}`);
-		} catch {
-			// Already gone is the outcome we wanted.
-		}
-	}
-	return rows.length;
+  const rows = db()
+    .query<{ fileName: string }, [string]>(
+      "SELECT fileName FROM lImage WHERE userKey = ?",
+    )
+    .all(userKey);
+  db().run("DELETE FROM lImage WHERE userKey = ?", [userKey]);
+  for (const { fileName } of rows) {
+    try {
+      unlinkSync(`images/${fileName}`);
+    } catch {
+      // Already gone is the outcome we wanted.
+    }
+  }
+  return rows.length;
 }
 
 /**
@@ -90,25 +90,25 @@ export function deleteAllImages(userKey: string): number {
  * stored file is a WebP, so the header says it without decoding anything.
  */
 export async function backfillImageSizes(): Promise<void> {
-	const rows = db()
-		.query<{ fileName: string }, []>(
-			"SELECT fileName FROM lImage WHERE width IS NULL",
-		)
-		.all();
-	for (const { fileName } of rows) {
-		try {
-			const size = webpSize(await Bun.file(`images/${fileName}`).bytes());
-			if (!size) continue;
-			db().run("UPDATE lImage SET width = ?, height = ? WHERE fileName = ?", [
-				size.width,
-				size.height,
-				fileName,
-			]);
-		} catch {
-			// A missing or unreadable file keeps its NULLs; the gallery falls
-			// back to a square for it, as it did for everything before.
-		}
-	}
+  const rows = db()
+    .query<{ fileName: string }, []>(
+      "SELECT fileName FROM lImage WHERE width IS NULL",
+    )
+    .all();
+  for (const { fileName } of rows) {
+    try {
+      const size = webpSize(await Bun.file(`images/${fileName}`).bytes());
+      if (!size) continue;
+      db().run("UPDATE lImage SET width = ?, height = ? WHERE fileName = ?", [
+        size.width,
+        size.height,
+        fileName,
+      ]);
+    } catch {
+      // A missing or unreadable file keeps its NULLs; the gallery falls
+      // back to a square for it, as it did for everything before.
+    }
+  }
 }
 
 /**
@@ -117,33 +117,33 @@ export async function backfillImageSizes(): Promise<void> {
  * every later row up one and the next page silently skipped a picture.
  */
 export function get(
-	offset: number,
-	limit: number,
-	find: boolean,
-	userKey?: string,
+  offset: number,
+  limit: number,
+  find: boolean,
+  userKey?: string,
 ) {
-	type Row = {
-		fileName: string;
-		userKey: string;
-		width: number | null;
-		height: number | null;
-	};
-	const rows = find
-		? db()
-				.query<Row, [string, number, number]>(
-					"SELECT fileName, userKey, width, height FROM lImage WHERE userKey = ? ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
-				)
-				.all(userKey ?? "", limit, offset)
-		: db()
-				.query<Row, [number, number]>(
-					"SELECT fileName, userKey, width, height FROM lImage ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
-				)
-				.all(limit, offset);
+  type Row = {
+    fileName: string;
+    userKey: string;
+    width: number | null;
+    height: number | null;
+  };
+  const rows = find
+    ? db()
+        .query<Row, [string, number, number]>(
+          "SELECT fileName, userKey, width, height FROM lImage WHERE userKey = ? ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
+        )
+        .all(userKey ?? "", limit, offset)
+    : db()
+        .query<Row, [number, number]>(
+          "SELECT fileName, userKey, width, height FROM lImage ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
+        )
+        .all(limit, offset);
 
-	return rows.map((image) => ({
-		name: image.fileName,
-		isDeletable: image.userKey === userKey,
-		width: image.width ?? 960,
-		height: image.height ?? 960,
-	}));
+  return rows.map((image) => ({
+    name: image.fileName,
+    isDeletable: image.userKey === userKey,
+    width: image.width ?? 960,
+    height: image.height ?? 960,
+  }));
 }
