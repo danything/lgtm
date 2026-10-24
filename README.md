@@ -11,7 +11,9 @@ xool から分離したもので、ポスト通信簿は <https://github.com/dan
 
 変換はブラウザの中でやります。Web Worker の中で画像を読み込み(GIF は gifuct-js、
 アニメーション WebP は libwebp の wasm、それ以外はブラウザ自身)、Canvas で縮小と
-LGTM の合成をして、libwebp の wasm(wasm-webp)で WebP にします。サーバーは届いた
+LGTM の合成をして、libwebp の wasm で WebP にします。wasm は wasm-webp のバインディングを
+SIMD 有効でビルドし直したもので(`scripts/build-webp-wasm.sh`、出力は
+`src/lib/lgtm/vendor/`)、配布版より速く動きます。サーバーは届いた
 ファイルが WebP であること・長辺 960px 以内・30MB 以内であることだけを確かめて
 そのまま保存します。LGTM が載っているかまでは確かめられないので、素の画像を上げる
 アカウントは削除で対処します。

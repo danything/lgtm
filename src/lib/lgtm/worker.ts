@@ -10,9 +10,10 @@
  * drawing. Encoding is libwebp again.
  */
 import { decompressFrames, parseGIF } from "gifuct-js";
-import WebP, { type WebPModule } from "wasm-webp/dist/esm/webp-wasm.js";
-import wasmUrl from "wasm-webp/dist/esm/webp-wasm.wasm?url";
 import lgtmUrl from "../assets/lgtm.webp?url";
+// libwebp built with wasm SIMD; see scripts/build-webp-wasm.sh.
+import WebP, { type WebPModule } from "./vendor/webp-wasm.js";
+import wasmUrl from "./vendor/webp-wasm.wasm?url";
 
 /** Longest side of what gets stored. */
 const MAX_SIDE = 960;
