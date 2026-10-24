@@ -153,23 +153,31 @@ nav {
  * 巻き始めの 3rem で面と影が付いて、一覧の上に浮き上がる。巻いた量で決まる CSS の
  * 動き (scroll-driven animation) なので、JS で巻くのを見張らない。
  * 位置と形は変えない (面と影だけ) ので、並びは揺れない。
- * 使えないブラウザ (Firefox はまだ既定で切ってある) では、今までどおりいつも浮かせる
+ *
+ * **素の見た目を平らにし、浮いた姿は動きの側に持たせる。** 巻けないうち (読み込んだ
+ * 直後で中身の高さが決まる前・中身が短いページ) は巻く量の物差しが無く、動きは
+ * 効かない。前は素の見た目が浮いた姿だったので、そのたびに一番上でも浮いていた。
+ *
+ * 使えないブラウザ (Firefox はまだ既定で切ってある) と、動きを減らす設定では、
+ * 今までどおりいつも浮かせる (平らなまま中身に重なると字が読みにくい)
  */
 @supports (animation-timeline: scroll()) {
-	nav {
-		animation:
-			ui-drop 420ms var(--ui-ease-out) both,
-			header-lift linear both;
-		animation-timeline: auto, scroll(root);
-		animation-range: normal, 0 3rem;
+	@media (prefers-reduced-motion: no-preference) {
+		nav {
+			background-color: transparent;
+			box-shadow: none;
+			animation:
+				ui-drop 420ms var(--ui-ease-out) both,
+				header-lift linear both;
+			animation-timeline: auto, scroll(root);
+			animation-range: normal, 0 3rem;
+		}
 	}
 }
 @keyframes header-lift {
-	from {
-		background-color: transparent;
-		box-shadow:
-			0 4px 12px transparent,
-			0 16px 32px -8px transparent;
+	to {
+		background-color: var(--ui-float);
+		box-shadow: var(--ui-shadow-pop);
 	}
 }
 @media (min-width: 640px) {
