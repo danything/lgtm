@@ -5,7 +5,6 @@ sortImports = true
 ignorePatterns = [
   # docker-publish.yml がイメージのタグを書き換えて ArgoCD が読む
   "deploy/",
-  "renovate.json",
   # scripts/build-wasm.sh が出す Emscripten の糊 (手では触らない。隣の .d.ts は手書き)
   "src/lib/lgtm/vendor/lgtm-wasm.js",
 ]
