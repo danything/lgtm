@@ -9,9 +9,11 @@
 
 <script lang="ts">
   import { untrack } from "svelte";
+
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
-  import { setMessage } from "#lib/stores/toast.svelte.js";
   import { FIRST_LIMIT, PER_PAGE } from "#lib/paging.js";
+  import { setMessage } from "#lib/stores/toast.svelte.js";
+
   import CopyButton from "./CopyButton.svelte";
   import DeleteButton from "./DeleteButton.svelte";
   import PreviewButton from "./PreviewButton.svelte";

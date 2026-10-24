@@ -1,7 +1,8 @@
 # 整形 (`bun fmt`。`package.json` の format・lint から呼ぶ)。書き方は既定のまま、外すものだけ
 [fmt]
+# import を並べ替える (副作用だけの import は順を変えない)
+sortImports = true
 ignorePatterns = [
-  "static/",
   # docker-publish.yml がイメージのタグを書き換えて ArgoCD が読む
   "deploy/",
   "renovate.json",

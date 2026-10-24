@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { refreshAll } from "$app/navigation";
+
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
   import { makeLgtm, UnsupportedBrowserError } from "#lib/lgtm/index.js";
   import { setMessage } from "#lib/stores/toast.svelte.js";
-  import { refreshAll } from "$app/navigation";
 
   let isGenerating = $state(false);
   // 0..1 across the whole batch. A long animation takes seconds, and a bare
