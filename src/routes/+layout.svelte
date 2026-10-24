@@ -148,6 +148,30 @@ nav {
 		background-color 240ms var(--ui-ease),
 		box-shadow 240ms var(--ui-ease);
 }
+/*
+ * **巻いたときだけ浮かせる。** 一番上では面も影も無く、地にとけた平らなヘッダー。
+ * 巻き始めの 3rem で面と影が付いて、一覧の上に浮き上がる。巻いた量で決まる CSS の
+ * 動き (scroll-driven animation) なので、JS で巻くのを見張らない。
+ * 位置と形は変えない (面と影だけ) ので、並びは揺れない。
+ * 使えないブラウザ (Firefox はまだ既定で切ってある) では、今までどおりいつも浮かせる
+ */
+@supports (animation-timeline: scroll()) {
+	nav {
+		animation:
+			ui-drop 420ms var(--ui-ease-out) both,
+			header-lift linear both;
+		animation-timeline: auto, scroll(root);
+		animation-range: normal, 0 3rem;
+	}
+}
+@keyframes header-lift {
+	from {
+		background-color: transparent;
+		box-shadow:
+			0 4px 12px transparent,
+			0 16px 32px -8px transparent;
+	}
+}
 @media (min-width: 640px) {
 	nav {
 		inset-inline: 0.75rem;
