@@ -97,7 +97,6 @@ $effect(() => {
 />
 <button
 	type="button"
-	class="mini"
 	disabled={isGenerating}
 	onclick={() => inputRef?.click()}
 >
@@ -106,7 +105,16 @@ $effect(() => {
 		生成中
 		<span class="pct">{Math.floor(progress * 100)}%</span>
 	{:else}
-		画像を追加
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				fill="none"
+				stroke="currentColor"
+				stroke-linecap="round"
+				stroke-width="2.25"
+				d="M12 5v14M5 12h14"
+			/>
+		</svg>
+		<span class="label">画像を追加</span>
 	{/if}
 </button>
 
@@ -128,11 +136,23 @@ $effect(() => {
 input {
 	display: none;
 }
-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.4rem;
+svg {
+	width: 1.125rem;
+	height: 1.125rem;
+}
+/*
+ * 狭い画面ではヘッダーに収まらないので、＋の印だけにする。名前は読み上げに残す
+ * (見えないだけで、ボタンの名前は「画像を追加」のまま)
+ */
+@media (max-width: 479px) {
+	.label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
 }
 /* 数字が変わるたびにボタンの幅が変わると、ヘッダーの並びまで揺れる。
    等幅の数字で、いちばん長い "100%" の幅を最初から取っておく */
@@ -146,16 +166,18 @@ button {
 	z-index: 50;
 	position: fixed;
 	inset: 0;
-	background: color-mix(in srgb, var(--pico-background-color) 80%, transparent);
-	padding: 1rem;
+	background: color-mix(in srgb, var(--ui-bg) 80%, transparent);
+	padding: 0.75rem;
 }
+/* 受け皿はウィンドウそのもの。線は主の色 (線は主の色の役目)、字は本文の色 */
 .frame {
 	display: grid;
 	place-items: center;
 	width: 100%;
 	height: 100%;
-	border: 4px dashed var(--pico-primary);
-	border-radius: 1.5rem;
+	border: 2px dashed var(--pico-primary);
+	border-radius: 1.25rem;
+	color: var(--ui-fg);
 	font-size: 1.5rem;
 	font-weight: 700;
 }

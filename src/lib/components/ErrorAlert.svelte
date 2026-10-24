@@ -23,14 +23,13 @@ let { children }: { children: Snippet } = $props();
 </div>
 
 <style>
+/* 注意書きの面 (app.css の .note)。問題であることは赤い印と言葉で示し、地は塗らない */
 .note {
-	align-items: center;
-	margin-bottom: 1rem;
-	color: var(--ui-err);
+	margin-top: 0.75rem;
 }
 svg {
 	flex-shrink: 0;
-	width: 1.5rem;
-	height: 1.5rem;
+	width: 1.375rem;
+	height: 1.375rem;
 }
 </style>

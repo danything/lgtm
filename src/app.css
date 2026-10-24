@@ -10,8 +10,8 @@
  * 関係なく必ず Pico に勝つ。Pico の強い selector に合わせて同じ強さで書き直す、という
  * 張り合いが要らない。各画面の <style> も同じく層の外なので、Pico より必ず勝つ。
  *
- * **色は Pico の既定のまま使う。** 元のテーマの色は写さない。
- * --ui-* は Pico の変数から引いてあるので、明暗の切り替えにもそのまま追従する。
+ * **主の色は Pico の既定 (azure) のまま。** 地・面・字・影の色は下の --ui-* で決め、
+ * 明暗は OS の設定に従って切り替える (denpa と同じ値)。
  *
  * **Pico は使う部品だけ読む。** 丸ごとだと 90KB あり、ほとんどはこのアプリに出てこない
  * 要素のためのもの。ここ(全画面で読む)には、どの画面にも出る要素の土台だけを置く。
@@ -49,20 +49,34 @@
 @import "@anyblades/blades/layered/components/card";
 @import "@anyblades/blades/layered/utilities";
 
+/*
+ * **見た目の決まりは denpa の docs/design.md に揃える。**
+ * 合言葉は「塗らない。囲みすぎない。浮かせすぎない。でも、ちゃんと伝わる。」
+ *
+ * - 層は 3 つ。**地** (ページ・画像の一覧・表の行。平らで線も影も無い)、
+ *   **件の面** (管理の数字。地より一段上の面)、**操作の層** (ヘッダー・ダイアログ・
+ *   通知。面と 2 段の影)。浮いたものの上に、さらに浮いたものを重ねない
+ * - 強弱は塗りではなく、字の太さ・線・層で。主の色は線 (下線)・焦点の線・リンクだけ
+ * - 状態の色 (赤) は戻せない操作と問題だけ。色だけに頼らず、印と言葉を添える
+ * - 動きは 80ms の transition と小さな transform だけ
+ *
+ * 色の値は denpa と同じ段 (明るいほうは Pico の色見本、暗いほうはほぼ黒の自前の段)。
+ * テーマは OS の設定に従う (Pico と同じ条件で暗いほうに切り替える)
+ */
 :root {
 	/* フォントは束ねない(1 家族 1.3MB を全員に落とさせる価値が無い)。Windows なら
 	   BIZ UDPGothic、mac なら ヒラギノ、それ以外は OS の日本語フォント */
 	--pico-font-family-sans-serif:
 		"BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", system-ui,
 		sans-serif;
-	--pico-font-family-monospace: "MesloLGS NF", monospace;
+	--pico-font-family-monospace:
+		ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
 	--pico-font-size: 16px;
-	--pico-line-height: 1.7;
+	--pico-line-height: 1.6;
 	--pico-spacing: 1rem;
-	--pico-typography-spacing-vertical: 0.8rem;
-	--pico-form-element-spacing-vertical: 0.5rem;
+	--pico-typography-spacing-vertical: 0.75rem;
+	--pico-form-element-spacing-vertical: 0.45rem;
 	--pico-form-element-spacing-horizontal: 0.75rem;
-	--pico-border-radius: 0.5rem;
 	/*
 	 * 中身の幅。本文 65ch を、BIZ UDPGothic で描いたときの実寸で固定した値。
 	 * `ch` はフォントの `0` の幅で、BIZ UDPGothic は約 0.76em、代替の sans-serif は
@@ -70,58 +84,93 @@
 	 * 描かれ、届いた瞬間に跳ねる
 	 */
 	--ui-width: 49.5rem;
-}
 
+	/* ---- 形。角丸・字・動きはこの段から選ぶ ---- */
+	--ui-radius: 0.5rem;
+	--ui-radius-lg: 0.75rem;
+	--ui-radius-full: 999px;
+	--pico-border-radius: var(--ui-radius);
+	/* 件の面の角。中の角 (`--ui-radius`) と件の余白 (0.5rem) の入れ子 */
+	--ui-item-radius: calc(var(--ui-radius) + 0.5rem);
+	--ui-text-xs: 0.75rem;
+	--ui-text-sm: 0.875rem;
+	--ui-duration: 80ms;
+	--ui-ease: cubic-bezier(0.2, 0, 0, 1);
+	--pico-transition: var(--ui-duration) var(--ui-ease);
+
+	/* 本文の字。ボタンの中でも本文の色のまま (`--pico-color` はボタンの中で書き換わる) */
+	--ui-fg: var(--pico-color);
+	/* 状態の色は赤だけ (戻せない操作・問題) */
+	--ui-err: #d93526; /* red-500 */
+	/*
+	 * **操作の層の面** (ヘッダー・主のボタン)。メニューと同じ面を 92% 残し、下を流れる
+	 * 画像をうっすら見せる。ぼかさない (重い)。透かしを減らす設定では透かさない (下)
+	 */
+	--ui-float: color-mix(in srgb, var(--ui-pop) 92%, transparent);
+	/* 指を乗せた地。地の上の 1 行の並び (タブ・字だけのボタン) */
+	--ui-hover-soft: color-mix(in srgb, var(--ui-subtle) 55%, transparent);
+
+	/*
+	 * **画像の上の色。** 下にあるのは地の色ではなく任意の画像なので、テーマで変えない。
+	 * 字とアイコンは白、戻せないものの 2 回目は明るい赤。並びの裏には端から消えていく
+	 * 黒い影を敷いて、明るい画像の上でも読めるようにする
+	 */
+	--ui-on-media: #fff;
+	--ui-on-media-hover: rgb(255 255 255 / 0.16);
+	--ui-on-media-danger: #ff8a7a;
+	--ui-media-shade: rgb(0 0 0 / 0.55);
+}
 /*
- * この app.css で使う色は**すべて Pico の変数から引く**。自前の色を持たないので、
- * Pico 側の明暗の切り替え(prefers-color-scheme / data-theme)にそのまま追従する
+ * テーマごとの色。画面の側は変数だけを使う
+ *
+ * - `--ui-bg` 地・`--ui-surface` ダイアログ・`--ui-subtle` 淡い面 (読み込み中のタイル)
+ * - `--ui-line` 細い線ほどの濃さの面・`--ui-pop` 通知とヘッダーの面
+ * - `--ui-item` 件の面 (`--ui-item-shadow` は明るいほうだけ)
+ * - `--ui-muted` 控えた字・`--ui-primary-text` 主の色を字にするとき
+ * - `--ui-err-text` 赤を字にするとき (地の上で 4.5:1 以上になる段)
+ * - `--ui-shadow-pop` 浮かぶもの・`--ui-backdrop` ダイアログの後ろの幕 (ぼかさない)
  */
 :root {
-	--ui-surface: var(--pico-card-background-color);
-	--ui-base-200: var(--pico-code-background-color);
-	--ui-base-300: var(--pico-muted-border-color);
-	--ui-muted: var(--pico-muted-color);
-	--ui-err: var(--pico-del-color);
-	--ui-info: var(--pico-primary);
-	/* 注意書きと札の地。地の色に混ぜるので、明暗どちらでも浮かない */
-	--ui-err-bg: color-mix(
-		in srgb,
-		var(--ui-err) 12%,
-		var(--pico-background-color)
-	);
-	--ui-info-bg: color-mix(
-		in srgb,
-		var(--ui-info) 12%,
-		var(--pico-background-color)
-	);
-	/*
-	 * 影は Pico v2.1 の重ねた影のまま。Blades は 1 枚の濃い影に変えたが、写真の拡大表示の
-	 * 縁が変わるので前の値を持ってくる。色だけは明暗で違うので下で決める
-	 */
-	--ui-shadow:
-		0.0145rem 0.029rem 0.174rem rgb(var(--ui-shadow-rgb) / 0.01698),
-		0.0335rem 0.067rem 0.402rem rgb(var(--ui-shadow-rgb) / 0.024),
-		0.0625rem 0.125rem 0.75rem rgb(var(--ui-shadow-rgb) / 0.03),
-		0.1125rem 0.225rem 1.35rem rgb(var(--ui-shadow-rgb) / 0.036),
-		0.2085rem 0.417rem 2.502rem rgb(var(--ui-shadow-rgb) / 0.04302),
-		0.5rem 1rem 6rem rgb(var(--ui-shadow-rgb) / 0.06),
-		0 0 0 0.0625rem rgb(var(--ui-shadow-rgb) / 0.015);
-	--ui-shadow-rgb: 129 145 181;
-	/*
-	 * 写真に重ねる幕。ここだけは Pico の変数を引かない -- 下にあるのは地の色ではなく
-	 * 任意の画像なので、明暗のどちらでも暗いままでないと白文字が読めない
-	 */
-	--ui-veil: rgb(0 0 0 / 0.5);
-	--ui-veil-color: #fff;
+	--ui-bg: #fff;
+	--ui-surface: #fff;
+	--ui-subtle: #eff1f4; /* slate-50 */
+	--ui-line: #dfe3eb; /* slate-100 */
+	--ui-pop: #fff;
+	--ui-muted: #555e70; /* 白と淡い面のどちらでも 4.5 以上 */
+	--ui-primary-text: #02659a; /* azure-600 */
+	--ui-err-text: #9b2318; /* red-650 */
+	--ui-item: #fff;
+	--ui-item-shadow:
+		0 1px 2px rgb(24 28 37 / 0.08), 0 2px 8px rgb(24 28 37 / 0.06);
+	--ui-shadow-pop:
+		0 4px 12px rgb(24 28 37 / 0.08), 0 16px 32px -8px rgb(24 28 37 / 0.16);
+	--ui-backdrop: rgb(24 28 37 / 0.16);
+	--pico-background-color: var(--ui-bg);
+	--pico-muted-border-color: var(--ui-line);
+	--pico-table-border-color: transparent;
 }
-/* 影の色。Pico と同じ条件で暗いほうに切り替える */
 @media (prefers-color-scheme: dark) {
-	:root:not([data-theme]) {
-		--ui-shadow-rgb: 7 8.5 12;
+	:root:not([data-theme="light"]) {
+		--ui-bg: #0b0c0f;
+		--ui-surface: #121318;
+		--ui-subtle: #1a1b20;
+		--ui-line: #26282e;
+		/* 黒い地では影が見えないので、浮かぶ面は地より明るくして縁を見せる */
+		--ui-pop: #1f2026;
+		--ui-muted: #9aa3b5;
+		--ui-primary-text: var(--pico-primary);
+		--ui-err-text: #f38f79; /* red-300 */
+		--ui-item: #16171c;
+		--ui-item-shadow: none;
+		--ui-shadow-pop:
+			0 4px 12px rgb(0 0 0 / 0.3), 0 16px 40px -8px rgb(0 0 0 / 0.5);
+		--ui-backdrop: rgb(0 0 0 / 0.45);
 	}
 }
-[data-theme="dark"] {
-	--ui-shadow-rgb: 7 8.5 12;
+@media (prefers-reduced-transparency: reduce) {
+	:root {
+		--ui-float: var(--ui-pop);
+	}
 }
 
 html {
@@ -137,7 +186,7 @@ html {
 	scrollbar-gutter: stable;
 }
 body {
-	background: var(--pico-background-color);
+	background: var(--ui-bg);
 	/* 日本語を文節で折り返す */
 	word-break: auto-phrase;
 	line-break: strict;
@@ -184,12 +233,13 @@ h4 {
 	line-height: 1.3;
 }
 h1 {
-	font-size: 1.6rem;
+	font-size: 1.5rem;
 }
 h2 {
-	font-size: 1.2rem;
+	font-size: 1.125rem;
 }
-h3 {
+h3,
+h4 {
 	font-size: 1rem;
 }
 
@@ -201,140 +251,230 @@ h3 {
 	padding-inline: 1rem;
 }
 
-/* ---- ボタン。指で押せる大きさを下限にする ---- */
-button,
-[type="button"],
-[type="submit"],
-[role="button"],
-a.button {
-	min-height: 2.5rem;
-	font-size: 0.925rem;
-	font-weight: 700;
-	white-space: nowrap;
+/* ---- 焦点。キーボードで触っているところだけ、外側の 2px の線 ---- */
+:focus-visible {
+	outline: 2px solid var(--pico-primary);
+	outline-offset: 2px;
 }
-a.button {
+
+/*
+ * ---- ボタン ----
+ *
+ * - 主 (クラス無し・`a.button`) … **操作の層に乗せる**。ヘッダーと同じ面と影のカプセルで、
+ *   字は本文の色の太字。主の色では塗らない。押している間は少し縮める
+ * - 字だけ (`.ghost`) … 平らで、地も枠も影も無い。乗せると薄い地
+ * - 戻せないもの … 1 回目 (`.outline.danger`) は字だけと同じで、乗せたときだけ赤い字。
+ *   確定 (`.danger`) は主と同じ層で赤い字 (赤では塗らない)
+ *
+ * **浮いたものの中では浮かせない** (ヘッダー・ダイアログ・表の中)。下の `:where(nav, …)`
+ * が面と影を消し、中の主のボタンは太字だけになる。
+ * 規則は `:where()` で詳細度を落としてあり、自前の見た目を持つボタン (画像の上の
+ * ボタン・タイルそのもの) はクラス 1 つでこれに勝つ。Pico は層の中なので、Pico の
+ * :hover / :focus の色はここで全部上書きされる
+ */
+:root {
+	--ui-btn-solid: var(--ui-float);
+	--ui-btn-solid-hover: var(--ui-pop);
+	--ui-btn-lift: var(--ui-shadow-pop);
+	--ui-btn-h: 2.5rem;
+	--ui-btn-h-xs: 1.75rem;
+}
+@media (pointer: coarse) {
+	:root {
+		--ui-btn-h-xs: 2.5rem;
+	}
+}
+:where(nav, dialog, table) {
+	--ui-btn-solid: transparent;
+	--ui-btn-solid-hover: var(--ui-hover-soft);
+	--ui-btn-lift: none;
+}
+:where(button, [type="button"], [type="submit"], [role="button"], a.button) {
+	--pico-background-color: var(--ui-btn-solid);
+	--pico-border-color: transparent;
+	--pico-color: var(--ui-fg);
+	--pico-box-shadow: var(--ui-btn-lift);
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: 0.4rem;
-	border: var(--pico-border-width) solid var(--pico-primary-border);
-	border-radius: var(--pico-border-radius);
-	padding: var(--pico-form-element-spacing-vertical)
-		var(--pico-form-element-spacing-horizontal);
-	background: var(--pico-primary-background);
-	color: var(--pico-primary-inverse);
-	line-height: var(--pico-line-height);
+	min-height: var(--ui-btn-h);
+	border-radius: var(--ui-radius-full);
+	padding-block: 0;
+	padding-inline: 0.875rem;
+	font-size: var(--ui-text-sm);
+	font-weight: 700;
+	white-space: nowrap;
+	transition:
+		background-color var(--ui-duration) var(--ui-ease),
+		box-shadow var(--ui-duration) var(--ui-ease),
+		transform var(--ui-duration) var(--ui-ease);
+}
+:where(
+	button,
+	[type="button"],
+	[type="submit"],
+	[role="button"],
+	a.button
+):where(:hover) {
+	--pico-background-color: var(--ui-btn-solid-hover);
+	--pico-color: var(--ui-fg);
+}
+:where(
+	button,
+	[type="button"],
+	[type="submit"],
+	[role="button"],
+	a.button
+):where(:active:not(:disabled)) {
+	transform: scale(0.97);
+}
+/* リンクのままボタンの見た目にする (role="button" にするとリンクでなくなる) */
+a.button {
+	border: var(--pico-border-width) solid var(--pico-border-color);
+	background-color: var(--pico-background-color);
+	box-shadow: var(--pico-box-shadow);
+	color: var(--pico-color);
 	text-decoration: none;
+	cursor: pointer;
 }
-a.button:hover {
-	border-color: var(--pico-primary-hover-border);
-	background: var(--pico-primary-hover-background);
-	color: var(--pico-primary-inverse);
+:where(button, a.button).ghost,
+:where(button, a.button).outline {
+	--pico-background-color: transparent;
+	--pico-box-shadow: none;
 }
-a.button.ghost,
-button.ghost {
-	border-color: transparent;
-	background: transparent;
-	color: inherit;
+:where(button, a.button):is(.ghost, .outline):where(:hover) {
+	--pico-background-color: var(--ui-hover-soft);
 }
-a.button.ghost:hover,
-button.ghost:hover {
-	border-color: transparent;
-	background: var(--ui-base-200);
-	color: inherit;
+:where(button, a.button):is(.ghost, .outline):where(:active) {
+	transform: none;
 }
-/* 取り消せない操作(削除・解除)にだけ赤を使う */
-button.danger,
-a.button.danger {
-	border-color: transparent;
-	background: transparent;
-	color: var(--ui-err);
+:where(button, a.button).danger {
+	--pico-color: var(--ui-err-text);
 }
-button.danger:hover,
-a.button.danger:hover {
-	border-color: var(--ui-err);
-	background: var(--ui-err-bg);
-	color: var(--ui-err);
+:where(button, a.button).outline.danger {
+	--pico-color: var(--ui-muted);
+	font-weight: 400;
 }
-/* a.button にも効かせる。上の a.button より選択子を強くしないと padding が負ける */
-.mini,
-a.button.mini {
-	min-height: 2rem;
-	padding: 0.15rem 0.6rem;
-	font-size: 0.8rem;
+:where(button, a.button).outline.danger:where(:hover) {
+	--pico-color: var(--ui-err-text);
 }
-/* 文字を持たない正方形のボタン。中身はアイコンだけ */
-.square {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 2.5rem;
-	min-width: 2.5rem;
+/* 小さいボタン (表の中)。指で押す端末では小さくしない */
+:where(button, a.button).xs {
+	min-height: var(--ui-btn-h-xs);
+	padding-inline: 0.625rem;
+	font-size: var(--ui-text-xs);
+}
+/* アイコンだけのボタン。円 */
+:where(button, a.button).icon {
+	width: var(--ui-btn-h);
 	padding: 0;
 }
 
-/* ---- 箱 ---- */
-.panel {
-	border: 1px solid var(--ui-base-300);
-	border-radius: var(--pico-border-radius);
-	background: var(--ui-surface);
-	box-shadow: var(--ui-shadow);
+/*
+ * ---- 画像の上の操作 (`.on-media`) ----
+ * **塗らない。** 白いアイコンに小さな影を付け、並びの裏には使う側が端から消えていく
+ * 黒い影 (`--ui-media-shade`) を敷く。乗せた・キーボードで触っているときだけ、ごく薄い
+ * 地を出す。戻せないものの 2 回目 (`.armed`) は明るい赤の字と下の短い赤い線
+ */
+:where(button).on-media {
+	--pico-background-color: transparent;
+	--pico-box-shadow: none;
+	--pico-color: var(--ui-on-media);
+	width: var(--ui-btn-h);
+	padding: 0;
+	filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.6));
+}
+:where(button).on-media:where(:hover, :focus-visible) {
+	--pico-background-color: var(--ui-on-media-hover);
+	--pico-color: var(--ui-on-media);
+}
+:where(button).on-media.armed {
+	--pico-color: var(--ui-on-media-danger);
+	background-image: linear-gradient(
+		var(--ui-on-media-danger),
+		var(--ui-on-media-danger)
+	);
+	background-repeat: no-repeat;
+	background-position: center bottom 0.25rem;
+	background-size: 1rem 2px;
+}
+:where(button).on-media:where(:hover).armed {
+	--pico-color: var(--ui-on-media-danger);
+}
+.on-media svg {
+	width: 1.375rem;
+	height: 1.375rem;
 }
 
-/* ---- 注意書き ---- */
+/* ---- 件の面 (地より一段上の面。縁は付けない) ---- */
+.item {
+	border-radius: var(--ui-item-radius);
+	background: var(--ui-item);
+	box-shadow: var(--ui-item-shadow);
+}
+
+/*
+ * ---- 注意書き ----
+ * 地を塗らず、印 (アイコン) と言葉で伝える。問題だけ赤い印にする (色だけに頼らない)
+ */
 .note {
 	display: flex;
+	align-items: center;
 	gap: 0.6rem;
-	border: 1px solid var(--ui-base-300);
-	border-left: 4px solid var(--ui-muted);
-	border-radius: var(--pico-border-radius);
-	background: var(--ui-base-200);
-	padding: 0.7rem 0.9rem;
-	font-size: 0.9rem;
+	border-radius: var(--ui-item-radius);
+	background: var(--ui-item);
+	box-shadow: var(--ui-item-shadow);
+	padding: 0.75rem 1rem;
+	font-size: var(--ui-text-sm);
 }
-.note.err {
-	border-color: var(--ui-err-bg);
-	border-left-color: var(--ui-err);
-	background: var(--ui-err-bg);
-}
-.note.info {
-	border-color: var(--ui-info-bg);
-	border-left-color: var(--ui-info);
-	background: var(--ui-info-bg);
+.note.err > svg {
+	color: var(--ui-err-text);
 }
 
-/* ---- 札 ---- */
+/* ---- 札 (状態だけ。淡い地のカプセル) ---- */
 .tag {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.25rem;
-	border: 1px solid var(--ui-base-300);
-	border-radius: 999px;
-	background: var(--ui-surface);
+	border-radius: var(--ui-radius-full);
+	background: var(--ui-subtle);
 	padding: 0.1rem 0.6rem;
 	color: var(--ui-muted);
-	font-size: 0.78rem;
-	font-weight: 700;
+	font-size: var(--ui-text-xs);
 	white-space: nowrap;
 }
 
-/* ---- 表 ---- */
+/* ---- 表。線で分けず、行は地のまま。乗せた行だけ薄い地 ---- */
 table {
-	--pico-border-color: var(--ui-base-300);
-	font-size: 0.9rem;
+	font-size: var(--ui-text-sm);
 }
 th,
 td {
-	padding: 0.45rem 0.65rem;
+	border: 0;
+	background: transparent;
+	padding: 0.5rem 0.75rem;
 	vertical-align: baseline;
 }
 thead th {
-	background: var(--ui-base-200);
-	font-size: 0.85rem;
+	color: var(--ui-muted);
+	font-size: var(--ui-text-xs);
+	font-weight: 400;
 	white-space: nowrap;
 }
+tbody tr {
+	transition: background-color var(--ui-duration) var(--ui-ease);
+}
 tbody tr:hover {
-	background: var(--ui-base-200);
+	background: var(--ui-hover-soft);
+}
+tbody tr :is(td:first-child) {
+	border-start-start-radius: var(--ui-radius);
+	border-end-start-radius: var(--ui-radius);
+}
+tbody tr :is(td:last-child) {
+	border-start-end-radius: var(--ui-radius);
+	border-end-end-radius: var(--ui-radius);
 }
 /*
  * 表は狭い画面で横に流す。**列を潰させない。**
@@ -342,7 +482,6 @@ tbody tr:hover {
  */
 .scroll-x {
 	overflow-x: auto;
-	border-radius: var(--pico-border-radius);
 }
 .scroll-x > table {
 	min-width: 36rem;
@@ -353,7 +492,7 @@ tbody tr:hover {
 	color: var(--ui-muted);
 }
 .small {
-	font-size: 0.875rem;
+	font-size: var(--ui-text-sm);
 }
 .mono {
 	font-family: var(--pico-font-family-monospace);
@@ -367,14 +506,14 @@ tbody tr:hover {
 .grow {
 	flex: 1 1 auto;
 }
-/* 読み込み中の丸。ボタンの中にも置ける */
+/* 読み込み中の丸。ボタンの中にも置ける (いま動いていることを示す印なので回し続ける) */
 .spin {
 	display: inline-block;
 	width: 1em;
 	height: 1em;
 	border: 2px solid currentColor;
 	border-right-color: transparent;
-	border-radius: 999px;
+	border-radius: var(--ui-radius-full);
 	animation: ui-spin 0.8s linear infinite;
 }
 @keyframes ui-spin {
@@ -383,6 +522,9 @@ tbody tr:hover {
 	}
 }
 @media (prefers-reduced-motion: reduce) {
+	:root {
+		--ui-duration: 0s;
+	}
 	.spin {
 		animation: none;
 	}

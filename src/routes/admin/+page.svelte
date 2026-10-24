@@ -81,21 +81,21 @@ const dateTime = new Intl.DateTimeFormat("ja-JP", {
 
 <div class="page">
 	<div class="counts">
-		<div class="count">
+		<div class="count item">
 			<div class="lab">画像</div>
 			<div class="val">{number.format(data.lgtm.images)}</div>
 		</div>
-		<div class="count">
+		<div class="count item">
 			<div class="lab">アップロードした人</div>
 			<div class="val">{number.format(data.lgtm.owners)}</div>
 		</div>
-		<div class="count">
+		<div class="count item">
 			<div class="lab">GitHubアカウント</div>
 			<div class="val">{number.format(data.lgtm.githubUsers)}</div>
 		</div>
 	</div>
 
-	<div class="heading"><h4>ユーザー別</h4></div>
+	<h2 class="heading">ユーザー別</h2>
 	<div class="scroll-x">
 		<table>
 			<thead>
@@ -121,7 +121,7 @@ const dateTime = new Intl.DateTimeFormat("ja-JP", {
 		</table>
 	</div>
 
-	<div class="heading"><h4>日別 (直近30日)</h4></div>
+	<h2 class="heading">日別 (直近30日)</h2>
 	<div class="scroll-x">
 		<table>
 			<thead>
@@ -143,7 +143,7 @@ const dateTime = new Intl.DateTimeFormat("ja-JP", {
 		</table>
 	</div>
 
-	<div class="heading"><h4>ユーザーと権限</h4></div>
+	<h2 class="heading">ユーザーと権限</h2>
 	<div class="scroll-x">
 		<table>
 			<thead>
@@ -169,6 +169,7 @@ const dateTime = new Intl.DateTimeFormat("ja-JP", {
 								<button
 									type="button"
 									class="xs"
+									class:outline={user.admin}
 									class:danger={user.admin}
 									disabled={saving !== undefined}
 									onclick={() => setAdmin(user.userKey, !user.admin)}
@@ -188,9 +189,8 @@ const dateTime = new Intl.DateTimeFormat("ja-JP", {
 							{#if !user.fixed}
 								<button
 									type="button"
-									class="xs"
-									class:danger={armed === user.userKey}
-									class:ghost={armed !== user.userKey}
+									class="xs danger"
+									class:outline={armed !== user.userKey}
 									disabled={saving !== undefined}
 									onclick={(event) => remove(event, user)}
 								>
@@ -214,54 +214,34 @@ const dateTime = new Intl.DateTimeFormat("ja-JP", {
 
 <style>
 .page {
-	padding-block: 1rem;
+	padding-block: 0.75rem 2rem;
 }
 
-/* ---- 件数 ---- */
+/* ---- 件数。1 つずつ件の面に乗せ、線では分けない ---- */
 .counts {
 	display: grid;
-	margin-bottom: 1rem;
+	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+	gap: 0.5rem;
+	margin-bottom: 1.5rem;
 }
 .count {
-	border-top: 1px solid var(--ui-base-300);
-	padding: 1rem 1.5rem;
-}
-.count:first-child {
-	border-top: 0;
-}
-/* 横に余裕があれば横並びにして、仕切りを縦線に変える */
-@media (min-width: 640px) {
-	.counts {
-		grid-auto-flow: column;
-		justify-content: start;
-	}
-	.count {
-		border-top: 0;
-		border-left: 1px solid var(--ui-base-300);
-	}
-	.count:first-child {
-		border-left: 0;
-	}
+	padding: 1rem 1.25rem;
 }
 .lab {
 	color: var(--ui-muted);
-	font-size: 0.75rem;
+	font-size: var(--ui-text-xs);
 }
 .val {
-	font-size: 2.25rem;
-	font-weight: 800;
+	font-size: 2rem;
+	font-weight: 700;
 	line-height: 1.2;
 	font-variant-numeric: tabular-nums;
 }
 
+/* まとまりは線ではなく余白と見出しで分ける */
 .heading {
-	margin-bottom: 0.5rem;
-}
-
-/* 表の中に収まる大きさのボタン */
-.xs {
-	min-height: 1.5rem;
-	padding: 0 0.5rem;
-	font-size: 0.7rem;
+	margin: 1.5rem 0 0.25rem;
+	padding-inline: 0.75rem;
+	font-size: var(--ui-text-sm);
 }
 </style>

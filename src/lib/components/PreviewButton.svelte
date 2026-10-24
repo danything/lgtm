@@ -9,14 +9,14 @@ function onClick(e: MouseEvent) {
 }
 </script>
 
-<button type="button" aria-label="拡大して表示" class="square" onclick={onClick}>
+<button type="button" aria-label="拡大して表示" title="拡大して表示" class="on-media" onclick={onClick}>
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		fill="none"
 		viewBox="0 0 24 24"
 		stroke="currentColor"
+		aria-hidden="true"
 	>
-		<title>Preview</title>
 		<path
 			stroke-linecap="round"
 			stroke-linejoin="round"
@@ -25,10 +25,3 @@ function onClick(e: MouseEvent) {
 		/>
 	</svg>
 </button>
-
-<style>
-svg {
-	width: 1.5rem;
-	height: 1.5rem;
-}
-</style>

@@ -166,25 +166,23 @@ export type File = {
 				/>
 			</button>
 			<!-- Clicking the picture copies, which nothing about a picture says.
-			     Hovering is the moment to mention it, and the only moment it is
-			     worth covering the image to do so. pointer-events-none so the
-			     thing it describes still receives the click. -->
-			<div class="veil">
-				<span>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<title>Copy</title>
-						<path
-							stroke-width="2"
-							d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"
-						/>
-					</svg>
-					クリックでリンクをコピー
-				</span>
+			     Hovering is the moment to mention it: a line along the bottom
+			     edge, over a shade that fades out upwards, so the picture itself
+			     stays in view. pointer-events-none so the thing it describes
+			     still receives the click. -->
+			<div class="hint" aria-hidden="true">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+				>
+					<path
+						stroke-width="2"
+						d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"
+					/>
+				</svg>
+				クリックでリンクをコピー
 			</div>
 			<!-- One row, so the two never have to know each other's size: delete
 			     sits to the left, and an armed delete grows leftwards from the
@@ -207,14 +205,13 @@ export type File = {
 		既定の箱は幅 32rem で止まり、拡大してもタイルと大差ない大きさだった。画面まで
 		伸ばせるようにして、縦長の画像は下の img 側で高さのほうを効かせて収める。
 	-->
-	<div class="panel box">
+	<div class="box">
 		<div class="shot">
 			{#if diaImage}
 				<div class="acts">
 					{#if diaImage.isDeletable}
 						<DeleteButton
 							fileName={diaImage.name}
-							isVisible={false}
 							onDeleted={() => {
 								if (diaImage) removeItem(diaImage.name);
 								closeDialog();
@@ -224,7 +221,6 @@ export type File = {
 					<CopyButton
 						text={() => lgtmImgTag(diaImage?.name ?? "")}
 						onClick={closeDialog}
-						isVisible={false}
 					/>
 				</div>
 				<!--
@@ -254,6 +250,13 @@ export type File = {
 </dialog>
 
 <style>
+/*
+ * 画像は地の上にそのまま並べる (面も枠も付けない)。タイルの角だけ丸め、指を乗せたら
+ * 操作 (右上) とコピーの案内 (下) を出す。どちらも画像の上の操作なので塗らず、端から
+ * 消えていく黒い影の上に白い字とアイコンを置く (denpa の docs/design.md「映像の上の操作」)。
+ * 指の端末には乗せる操作が無いので、右上の操作はいつも出しておく
+ */
+
 /* ---- 一覧 ---- */
 .tiles {
 	display: flex;
@@ -268,9 +271,8 @@ export type File = {
 	max-width: 32rem;
 	height: 16rem;
 	overflow: hidden;
-	border-radius: var(--pico-border-radius);
-	background: var(--ui-base-200);
-	transition: all 0.15s;
+	border-radius: var(--ui-radius-lg);
+	background: var(--ui-subtle);
 }
 /* 読み込み中はタイルの地の色を明滅させてスケルトンにする */
 .tile:has(img:not(:global(.loaded))) {
@@ -279,24 +281,22 @@ export type File = {
 /* 上に乗るボタンまで明滅しないよう、動かすのは地の色だけ */
 @keyframes tile-pulse {
 	50% {
-		background: var(--ui-base-300);
+		background: var(--ui-line);
 	}
 }
-.tile:hover {
-	z-index: 10;
-	transform: scale(1.05);
-}
-/* 画像そのものがボタン。ボタンらしい枠や地の色は要らない */
+/* 画像そのものがボタン。ボタンらしい地・影・形は要らない */
 .pic {
+	--pico-background-color: transparent;
+	--pico-box-shadow: none;
 	display: block;
 	width: 100%;
 	height: 100%;
-	min-height: 0;
-	border: 0;
 	border-radius: 0;
 	padding: 0;
-	background: transparent;
 	cursor: pointer;
+}
+.pic:active {
+	transform: none;
 }
 .pic img {
 	width: 100%;
@@ -308,6 +308,65 @@ export type File = {
 .pic img:global(.loaded) {
 	opacity: 1;
 }
+/* キーボードで触っているタイルは、角に沿った外側の線 (切れないよう内側に引く) */
+.pic:focus-visible {
+	outline-offset: -2px;
+	border-radius: var(--ui-radius-lg);
+}
+
+/* 右上の操作。裏に上から消えていく影を敷く */
+.acts {
+	display: flex;
+	position: absolute;
+	inset: 0 0 auto;
+	justify-content: flex-end;
+	gap: 0.125rem;
+	background: linear-gradient(var(--ui-media-shade), transparent);
+	padding: 0.375rem 0.375rem 1.5rem;
+	pointer-events: none;
+	transition: opacity var(--ui-duration) var(--ui-ease);
+}
+.acts > :global(*) {
+	pointer-events: auto;
+}
+/* 画像が来るまでは影を敷かない (地の色の上に黒い帯だけが乗って見える) */
+.tile:has(img:not(:global(.loaded))) .acts {
+	background: none;
+}
+/* 下のコピーの案内。下から消えていく影の上に白い字 */
+.hint {
+	display: flex;
+	position: absolute;
+	inset: auto 0 0;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	background: linear-gradient(transparent, var(--ui-media-shade));
+	padding: 1.75rem 0.75rem 0.75rem;
+	color: var(--ui-on-media);
+	font-size: var(--ui-text-sm);
+	font-weight: 700;
+	text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--ui-duration) var(--ui-ease);
+}
+.hint svg {
+	width: 1.125rem;
+	height: 1.125rem;
+}
+@media (hover: hover) {
+	.acts {
+		opacity: 0;
+	}
+	/* 確定待ちの削除は、指を離しても見えたままにする */
+	.tile:is(:hover, :focus-within) .acts,
+	.tile .acts:has(:global(.armed)),
+	.tile:hover .hint {
+		opacity: 1;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.tile {
 		animation: none !important;
@@ -316,49 +375,43 @@ export type File = {
 		transition: none;
 	}
 }
-.veil {
-	pointer-events: none;
-	display: grid;
-	position: absolute;
-	inset: 0;
-	place-items: center;
-	gap: 0.25rem;
-	background: var(--ui-veil);
-	color: var(--ui-veil-color);
-	opacity: 0;
-	transition: opacity 0.15s;
-}
-.tile:hover .veil {
-	opacity: 1;
-}
-.veil span {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	font-weight: 700;
-}
-.veil svg {
-	width: 1.25rem;
-	height: 1.25rem;
-}
-.acts {
-	display: flex;
-	position: absolute;
-	top: 0.75rem;
-	right: 0.75rem;
-	gap: 0.5rem;
-}
 
 /* ---- 拡大表示 ---- */
+/*
+ * ダイアログは操作の層 (面と影。縁は付けない)。後ろの幕はぼかさず、薄く暗くするだけ。
+ * 中の操作は画像の上なので、一覧のタイルと同じ見た目
+ */
+dialog {
+	--pico-modal-overlay-background-color: var(--ui-backdrop);
+	--pico-modal-overlay-backdrop-filter: none;
+	backdrop-filter: none;
+}
 .box {
 	z-index: 1;
 	position: relative;
 	width: auto;
 	max-width: 92vw;
+	border-radius: var(--ui-radius-lg);
+	background: var(--ui-surface);
+	box-shadow: var(--ui-shadow-pop);
 	padding: 0.5rem;
 }
 .shot {
 	position: relative;
+	overflow: hidden;
+	border-radius: var(--ui-radius);
+}
+.shot .acts {
+	opacity: 1;
+}
+@media (hover: hover) {
+	.shot .acts {
+		opacity: 0;
+	}
+	.shot:is(:hover, :focus-within) .acts,
+	.shot .acts:has(:global(.armed)) {
+		opacity: 1;
+	}
 }
 .shot img {
 	display: block;
@@ -369,8 +422,8 @@ export type File = {
 .blank {
 	width: 100%;
 	height: 100%;
-	border-radius: var(--pico-border-radius);
-	background: var(--ui-base-200);
+	border-radius: var(--ui-radius);
+	background: var(--ui-subtle);
 }
 /* 箱の外をクリックすると閉じる。全面に敷いた透明なボタンがその当たり判定 */
 .back {
@@ -379,14 +432,16 @@ export type File = {
 	margin: 0;
 }
 .back button {
+	--pico-background-color: transparent;
+	--pico-box-shadow: none;
 	width: 100%;
 	height: 100%;
-	min-height: 0;
-	border: 0;
 	border-radius: 0;
 	padding: 0;
-	background: transparent;
 	color: transparent;
 	cursor: pointer;
+}
+.back button:active {
+	transform: none;
 }
 </style>
