@@ -4,9 +4,9 @@ import { get } from "#lib/server/lgtm.js";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = ({ cookies }) => {
-	const wkey = cookies.get("key");
-	// Nothing to be on this page for, and the header does not offer it either.
-	if (wkey === undefined) redirect(307, "/");
+  const wkey = cookies.get("key");
+  // Nothing to be on this page for, and the header does not offer it either.
+  if (wkey === undefined) redirect(307, "/");
 
-	return { wkey, images: get(0, FIRST_LIMIT, true, wkey) };
+  return { wkey, images: get(0, FIRST_LIMIT, true, wkey) };
 };

@@ -8,7 +8,7 @@ on:
     # at once before the bot check in the job's if could skip it. Filtering on
     # paths keeps the run from being recorded at all.
     paths-ignore:
-      - 'deploy/deployment.yaml'
+      - "deploy/deployment.yaml"
 
 jobs:
   claude-review:

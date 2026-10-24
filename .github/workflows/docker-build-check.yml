@@ -10,7 +10,7 @@ on:
     # run that fails at once ("workflow file issue") -- the job-level if below
     # never gets to decide anything. Filtering on paths stops the run existing.
     paths-ignore:
-      - 'deploy/**'
+      - "deploy/**"
 
 jobs:
   build:

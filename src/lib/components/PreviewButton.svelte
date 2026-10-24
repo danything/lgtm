@@ -1,27 +1,33 @@
 <script lang="ts">
-let { onOpen }: { onOpen: () => void } = $props();
+  let { onOpen }: { onOpen: () => void } = $props();
 
-function onClick(e: MouseEvent) {
-	// The tile underneath copies the link; this is the other thing you might
-	// have wanted, so it must not also do that.
-	e.stopPropagation();
-	onOpen();
-}
+  function onClick(e: MouseEvent) {
+    // The tile underneath copies the link; this is the other thing you might
+    // have wanted, so it must not also do that.
+    e.stopPropagation();
+    onOpen();
+  }
 </script>
 
-<button type="button" aria-label="拡大して表示" title="拡大して表示" class="on-media" onclick={onClick}>
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		fill="none"
-		viewBox="0 0 24 24"
-		stroke="currentColor"
-		aria-hidden="true"
-	>
-		<path
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			stroke-width="2"
-			d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-		/>
-	</svg>
+<button
+  type="button"
+  aria-label="拡大して表示"
+  title="拡大して表示"
+  class="on-media"
+  onclick={onClick}
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    aria-hidden="true"
+  >
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+    />
+  </svg>
 </button>

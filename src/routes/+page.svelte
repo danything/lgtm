@@ -1,36 +1,43 @@
 <script lang="ts">
-import ErrorAlert from "#lib/components/ErrorAlert.svelte";
-import Gallery from "#lib/components/Gallery.svelte";
-import { page } from "$app/state";
-import type { PageProps } from "./$types";
+  import ErrorAlert from "#lib/components/ErrorAlert.svelte";
+  import Gallery from "#lib/components/Gallery.svelte";
+  import { page } from "$app/state";
+  import type { PageProps } from "./$types";
 
-let { data }: PageProps = $props();
+  let { data }: PageProps = $props();
 
-const title = "LGTM画像ジェネレーター｜GIF対応・ワンクリックでコピーしてGitHubに貼れる";
-const description =
-	"画像やGIFをドラッグ&ドロップするだけでLGTM画像を作成。アニメーションもそのまま残ります。みんなが作ったLGTM画像はクリックひとつで貼り付け用の画像タグをコピーでき、GitHubのプルリクエストのレビューにそのまま貼れます。";
+  const title =
+    "LGTM画像ジェネレーター｜GIF対応・ワンクリックでコピーしてGitHubに貼れる";
+  const description =
+    "画像やGIFをドラッグ&ドロップするだけでLGTM画像を作成。アニメーションもそのまま残ります。みんなが作ったLGTM画像はクリックひとつで貼り付け用の画像タグをコピーでき、GitHubのプルリクエストのレビューにそのまま貼れます。";
+  // 構造化データの script は、ここで文字列にして @html で置く。
+  // 画面の側に `<script` と書くと、oxlint が Svelte の script の塊と取り違えて読めない。
+  // 閉じタグは、この script の塊の終わりと取られないよう `<` を分けて書く
+  const jsonLd = $derived(
+    `<script type="application/ld+json">${JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: "LGTM",
+      alternateName: "LGTM画像ジェネレーター",
+      url: `${page.url.origin}/`,
+      description,
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Any",
+      inLanguage: "ja",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "JPY" },
+    })}${"<"}/script>`,
+  );
 </script>
 
 <svelte:head>
-	<title>{title}</title>
-	<meta name="description" content={description} />
-	<link rel="canonical" href={`${page.url.origin}/`} />
-	<meta property="og:title" content={title} />
-	<meta property="og:description" content={description} />
-	<meta property="og:url" content={`${page.url.origin}/`} />
-	<!-- 検索結果にサイト名とアプリの種類を出してもらうための構造化データ -->
-	{@html `<script type="application/ld+json">${JSON.stringify({
-		"@context": "https://schema.org",
-		"@type": "WebApplication",
-		name: "LGTM",
-		alternateName: "LGTM画像ジェネレーター",
-		url: `${page.url.origin}/`,
-		description,
-		applicationCategory: "DeveloperApplication",
-		operatingSystem: "Any",
-		inLanguage: "ja",
-		offers: { "@type": "Offer", price: "0", priceCurrency: "JPY" },
-	})}</script>`}
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={`${page.url.origin}/`} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={`${page.url.origin}/`} />
+  <!-- 検索結果にサイト名とアプリの種類を出してもらうための構造化データ -->
+  {@html jsonLd}
 </svelte:head>
 
 <!-- 画面には一覧しかなく、検索エンジンと読み上げには何のページか伝わらない。
@@ -38,24 +45,24 @@ const description =
 <h1 class="visually-hidden">LGTM画像ジェネレーター・LGTM画像一覧</h1>
 
 {#if data.message !== undefined}
-	<div class="wrap"><ErrorAlert>{data.message}</ErrorAlert></div>
+  <div class="wrap"><ErrorAlert>{data.message}</ErrorAlert></div>
 {/if}
 
 <!-- 左右の余白はヘッダーと同じ 1rem: ページ全体で一本の余白にする。 -->
 <div class="wrap">
-	<Gallery fileNameList={data.images} userKey={data.wkey} find={false} />
+  <Gallery fileNameList={data.images} userKey={data.wkey} find={false} />
 </div>
 
 <style>
-.visually-hidden {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	overflow: hidden;
-	clip-path: inset(50%);
-	white-space: nowrap;
-}
-.wrap {
-	padding-inline: 1rem;
-}
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .wrap {
+    padding-inline: 1rem;
+  }
 </style>

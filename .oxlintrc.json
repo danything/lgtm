@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "typescript/no-explicit-any": "error"
+  },
+  // Emscripten が出す糊 (scripts/build-wasm.sh)。手では触らない
+  "ignorePatterns": ["src/lib/lgtm/vendor/lgtm-wasm.js"],
+  "overrides": [
+    {
+      // Svelte の `$effect` は、読むだけの式で何に付いていくかを決める
+      "files": ["**/*.svelte"],
+      "rules": { "no-unused-expressions": "off" }
+    }
+  ]
+}

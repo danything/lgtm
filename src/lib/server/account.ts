@@ -6,9 +6,9 @@ import db from "./db";
  * by a key nobody holds.
  */
 export function accountExists(userKey: string): boolean {
-	return (
-		db()
-			.query<{ key: string }, [string]>("SELECT key FROM ghUser WHERE key = ?")
-			.get(userKey) !== null
-	);
+  return (
+    db()
+      .query<{ key: string }, [string]>("SELECT key FROM ghUser WHERE key = ?")
+      .get(userKey) !== null
+  );
 }

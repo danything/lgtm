@@ -7,8 +7,8 @@ import { setMessage } from "#lib/stores/toast.svelte.js";
  * whatever size the file happens to be. GitHub keeps the width attribute.
  */
 export function lgtmImgTag(fileName: string): string {
-	// Read at call time, when `location` exists.
-	return `<img src="${window.location.origin}/images/${fileName}" alt="LGTM" width="100%">`;
+  // Read at call time, when `location` exists.
+  return `<img src="${window.location.origin}/images/${fileName}" alt="LGTM" width="100%">`;
 }
 
 /**
@@ -17,21 +17,21 @@ export function lgtmImgTag(fileName: string): string {
  * that happens after the await. Callers say something different when they do.
  */
 export async function copyText(text: string): Promise<boolean> {
-	try {
-		await navigator.clipboard.writeText(text);
-		return true;
-	} catch {
-		return false;
-	}
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Copy, say which of the two things happened, and answer whether it took. */
 export async function copyAndReport(
-	text: string,
-	copied: string,
-	failed: string,
+  text: string,
+  copied: string,
+  failed: string,
 ): Promise<boolean> {
-	const ok = await copyText(text);
-	setMessage(ok ? copied : failed);
-	return ok;
+  const ok = await copyText(text);
+  setMessage(ok ? copied : failed);
+  return ok;
 }

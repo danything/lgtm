@@ -9,8 +9,8 @@ export type Theme = "system" | "light" | "dark";
 export const THEME_COOKIE = "theme";
 
 export const parseTheme = (value: string | undefined): Theme =>
-	value === "light" || value === "dark" ? value : "system";
+  value === "light" || value === "dark" ? value : "system";
 
 /** The attribute text for <html>: none for "system", so Pico's auto rules apply. */
 export const themeAttribute = (theme: Theme) =>
-	theme === "system" ? "" : ` data-theme="${theme}"`;
+  theme === "system" ? "" : ` data-theme="${theme}"`;
