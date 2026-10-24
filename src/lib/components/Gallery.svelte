@@ -9,7 +9,8 @@ export type File = {
 
 <script lang="ts">
 	import { untrack } from "svelte";
-	import { copyAndReport, lgtmImgTag } from "#lib/clipboard.js";
+	import { copyText, lgtmImgTag } from "#lib/clipboard.js";
+	import { setMessage } from "#lib/stores/toast.svelte.js";
 	import { FIRST_LIMIT, PER_PAGE } from "#lib/paging.js";
 	import CopyButton from "./CopyButton.svelte";
 	import DeleteButton from "./DeleteButton.svelte";
@@ -46,19 +47,19 @@ export type File = {
 	let isDone = false;
 	let sentinel: HTMLDivElement | undefined = $state();
 	let diaImage = $state<File>();
-	// The tile whose link was just copied, for a moment: it shows a tick there,
-	// where the click was, as well as the toast at the bottom. Only which tile;
-	// the badge's coming and going is CSS.
+	// The tile whose link was just copied, for a moment: the hint in its middle
+	// turns into a tick. Only which tile; the coming and going is CSS.
 	let copied = $state<string>();
 	let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
+	// Success is said on the tile itself, where the click was, so there is no
+	// toast for it as well. Failure leaves nothing on the tile, so that one does
+	// go to the toast.
 	async function copyTile(name: string) {
-		const ok = await copyAndReport(
-			lgtmImgTag(name),
-			"リンクをコピーしました",
-			"コピーできませんでした",
-		);
-		if (!ok) return;
+		if (!(await copyText(lgtmImgTag(name)))) {
+			setMessage("コピーできませんでした");
+			return;
+		}
 		copied = name;
 		clearTimeout(copiedTimer);
 		copiedTimer = setTimeout(() => (copied = undefined), 1200);
@@ -180,31 +181,27 @@ export type File = {
 				/>
 			</button>
 			<!-- Clicking the picture copies, which nothing about a picture says.
-			     Hovering is the moment to mention it: a line along the bottom
-			     edge, over a shade that fades out upwards, so the picture itself
-			     stays in view. pointer-events-none so the thing it describes
-			     still receives the click. -->
-			{#if copied === file.name}
-				<div class="copied" aria-hidden="true">
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-						<path d="m5 12.5 4.5 4.5L19 7.5" />
-					</svg>
-					コピーしました
-				</div>
-			{/if}
-			<div class="hint" aria-hidden="true">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-				>
-					<path
-						stroke-width="2"
-						d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"
-					/>
-				</svg>
-				クリックでリンクをコピー
+			     Hovering is the moment to mention it, in the middle where the
+			     click will land -- and the same capsule then says it worked, so
+			     there is one place to look and no toast as well. The words swap
+			     inside it; pointer-events-none so the click still reaches the
+			     picture. -->
+			<div class="badge" class:done={copied === file.name} aria-hidden="true">
+				{#key copied === file.name}
+					<span class="say">
+						{#if copied === file.name}
+							<svg class="tick" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+								<path d="m5 12.5 4.5 4.5L19 7.5" />
+							</svg>
+							コピーしました
+						{:else}
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-width="2" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+							</svg>
+							クリックでリンクをコピー
+						{/if}
+					</span>
+				{/key}
 			</div>
 			<!-- One row, so the two never have to know each other's size: delete
 			     sits to the left, and an armed delete grows leftwards from the
@@ -350,47 +347,7 @@ export type File = {
 		transform: scale(1.035);
 	}
 }
-/* コピーできたら、押したところに印がぽんと出る */
-.copied {
-	display: flex;
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	align-items: center;
-	gap: 0.4rem;
-	border-radius: var(--ui-radius-full);
-	background: var(--ui-pop);
-	box-shadow: var(--ui-shadow-pop);
-	padding: 0.5rem 1rem;
-	color: var(--ui-fg);
-	font-size: var(--ui-text-sm);
-	font-weight: 700;
-	white-space: nowrap;
-	pointer-events: none;
-	translate: -50% -50%;
-	animation:
-		ui-pop 280ms var(--ui-ease-out) both,
-		ui-fade 240ms var(--ui-ease) 950ms reverse forwards;
-}
-.copied svg {
-	width: 1.125rem;
-	height: 1.125rem;
-	color: var(--pico-primary);
-	/* 印は線を描くように現れる */
-	stroke-dasharray: 24;
-	animation: copied-check 360ms var(--ui-ease-out) 80ms both;
-}
-@keyframes copied-check {
-	from {
-		stroke-dashoffset: 24;
-	}
-	to {
-		stroke-dashoffset: 0;
-	}
-}
-.tile:has(.copied) .hint {
-	opacity: 0 !important;
-}/* キーボードで触っているタイルは、角に沿った外側の線 (切れないよう内側に引く) */
+/* キーボードで触っているタイルは、角に沿った外側の線 (切れないよう内側に引く) */
 .pic:focus-visible {
 	outline-offset: -2px;
 	border-radius: var(--ui-radius-lg);
@@ -415,41 +372,72 @@ export type File = {
 .tile:has(img:not(:global(.loaded))) .acts {
 	background: none;
 }
-/* 下のコピーの案内。下から消えていく影の上に白い字 */
-.hint {
-	display: flex;
+/*
+ * 真ん中のカプセル。乗せると「クリックでリンクをコピー」が出て、押すと同じ場所で
+ * 「✓ コピーしました」に変わる (通知は出さない。見るところを 1 つにする)。
+ * 面は通知と同じ浮かぶカプセル。指の端末では乗せる操作が無いので、コピーできた
+ * ときだけ出る
+ */
+.badge {
 	position: absolute;
-	inset: auto 0 0;
-	translate: 0 0.5rem;
-	align-items: center;
-	justify-content: center;
-	gap: 0.4rem;
-	background: linear-gradient(transparent, var(--ui-media-shade));
-	padding: 1.75rem 0.75rem 0.75rem;
-	color: var(--ui-on-media);
+	top: 50%;
+	left: 50%;
+	border-radius: var(--ui-radius-full);
+	background: var(--ui-pop);
+	box-shadow: var(--ui-shadow-pop);
+	padding: 0.5rem 1rem;
+	color: var(--ui-fg);
 	font-size: var(--ui-text-sm);
 	font-weight: 700;
-	text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
-	opacity: 0;
+	white-space: nowrap;
 	pointer-events: none;
+	translate: -50% -50%;
+	opacity: 0;
+	scale: 0.94;
 	transition:
 		opacity 200ms var(--ui-ease),
-		translate 260ms var(--ui-ease-out);
+		scale 260ms var(--ui-ease-out);
 }
-.hint svg {
+.badge.done {
+	opacity: 1;
+	scale: 1;
+}
+/* 字が入れ替わるときは、中身だけが小さく膨らんで現れる */
+.say {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	animation: ui-pop 240ms var(--ui-ease-out) both;
+}
+.say svg {
 	width: 1.125rem;
 	height: 1.125rem;
 }
-@media (hover: hover) {
+/* できた印は主の色で、線を描くように現れる */
+.tick {
+	color: var(--pico-primary);
+	stroke-dasharray: 24;
+	animation: badge-tick 360ms var(--ui-ease-out) 60ms both;
+}
+@keyframes badge-tick {
+	from {
+		stroke-dashoffset: 24;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}@media (hover: hover) {
 	.acts {
 		opacity: 0;
 	}
 	/* 確定待ちの削除は、指を離しても見えたままにする */
 	.tile:is(:hover, :focus-within) .acts,
-	.tile .acts:has(:global(.armed)),
-	.tile:hover .hint {
+	.tile .acts:has(:global(.armed)) {
 		opacity: 1;
-		translate: 0 0;
+	}
+	.tile:hover .badge {
+		opacity: 1;
+		scale: 1;
 	}
 }
 
