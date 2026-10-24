@@ -11,8 +11,17 @@ on:
     # never gets to decide anything. Filtering on paths stops the run existing.
     paths-ignore:
       - "deploy/**"
+  # main too, so a change that got past the PR check still shows up red.
+  push:
+    branches: [main]
+    paths-ignore:
+      - "deploy/**"
 
 jobs:
+  # Builds the image, then runs it and converts a PNG and a GIF in Chromium with
+  # the wasm it was built with (tests/wasm.spec.ts). A building image is not
+  # enough: an emsdk update merges itself once this passes, and one that still
+  # compiles can make a wasm that fails in the browser.
   build:
     runs-on: ubuntu-latest
     # Safety net for an image-tag PR opened by someone else; see paths-ignore.
@@ -26,5 +35,27 @@ jobs:
         with:
           context: .
           push: false
+          load: true
+          tags: lgtm:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Start the app
+        run: docker run -d --name app -p 3000:3000 lgtm:ci
+
+      - uses: oven-sh/setup-bun@v2
+
+      # Only @playwright/test is needed here, but the lockfile pins it, so the
+      # browser installed matches it.
+      - run: bun i --frozen-lockfile
+
+      - run: bunx playwright install --with-deps chromium
+
+      - name: Convert images in the browser
+        run: |
+          timeout 30 sh -c 'until curl -sf -o /dev/null http://localhost:3000/; do sleep 1; done'
+          bunx playwright test
+
+      - name: App logs
+        if: failure()
+        run: docker logs app

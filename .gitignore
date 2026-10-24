@@ -41,3 +41,7 @@ yarn-error.log*
 # for local development). lgtm-wasm.d.ts beside them is hand-written and kept.
 /src/lib/lgtm/vendor/lgtm-wasm.js
 /src/lib/lgtm/vendor/lgtm-wasm.wasm
+
+# Playwright (tests/wasm.spec.ts)
+/test-results/
+/playwright-report/
