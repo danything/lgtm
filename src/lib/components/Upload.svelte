@@ -35,8 +35,8 @@ async function upload(files: FileList) {
 		setMessage(
 			copied
 				? created.length > 1
-					? `${created.length}件のリンクをコピーしました`
-					: "リンクをコピーしました"
+					? `${created.length}件コピーしました`
+					: "コピーしました"
 				: "画像生成完了",
 		);
 	} catch (e) {

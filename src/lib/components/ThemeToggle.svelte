@@ -25,6 +25,7 @@ function apply(next: Theme) {
 	if (next === "system") root.removeAttribute("data-theme");
 	else root.setAttribute("data-theme", next);
 	// A year, for the whole site. Lax: it only decides colours.
+	// biome-ignore lint/suspicious/noDocumentCookie: the value is one of three fixed words, so there is nothing to escape, and the Cookie Store API is not in every browser this site serves
 	document.cookie = `${THEME_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
 }
 

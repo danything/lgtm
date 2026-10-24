@@ -13,15 +13,15 @@ let {
 
 function onClickCopy(e: MouseEvent) {
 	e.stopPropagation();
-	copyAndReport(text(), "リンクをコピーしました", "コピーできませんでした");
+	copyAndReport(text(), "コピーしました", "コピーできませんでした");
 	onClick();
 }
 </script>
 
 <button
 	type="button"
-	aria-label="リンクをコピー"
-	title="リンクをコピー"
+	aria-label="画像タグをコピー"
+	title="画像タグをコピー"
 	class="on-media"
 	onclick={onClickCopy}
 >
