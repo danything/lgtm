@@ -47,7 +47,7 @@ RUN mkdir /out \
 	&& { printf '// @ts-nocheck\n'; cat /out/lgtm-wasm.js; } > /out/lgtm-wasm.js.tmp \
 	&& mv /out/lgtm-wasm.js.tmp /out/lgtm-wasm.js
 
-# Only lgtm-wasm.{js,wasm}, for `--target wasm-out --output type=local,...`.
+# Only lgtm-wasm.{js,wasm}, for `--target wasm-out --output ...`.
 FROM scratch AS wasm-out
 COPY --from=wasm /out/ /
 
