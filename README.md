@@ -14,8 +14,8 @@ xool から分離したもので、ポスト通信簿は <https://github.com/dan
 Canvas で縮小と LGTM の合成をし、できたフレームから順にもう片方へ渡して libwebp で
 WebP にします。読み込みとエンコードが同時に進むので、長いアニメーションでも速く
 終わります。giflib と libwebp は `wasm/lgtm.cpp` のバインディングと一緒に SIMD 有効で
-wasm にしたもので、`scripts/build-wasm.sh` でビルドし直せます(出力は
-`src/lib/lgtm/vendor/`)。サーバーは届いた
+wasm にしたもので、イメージのビルド (`Dockerfile` の `wasm` ステージ) で作ります。
+サーバーは届いた
 ファイルが WebP であること・長辺 960px 以内・30MB 以内であることだけを確かめて
 そのまま保存します。LGTM が載っているかまでは確かめられないので、素の画像を上げる
 アカウントは削除で対処します。
@@ -52,6 +52,16 @@ GitHub のみです。𝕏 でのログインは xool から分離したとき�
 
 ```sh
 ./s.sh i
+```
+
+`./s.sh i` は最初にブラウザ用の wasm (`src/lib/lgtm/vendor/lgtm-wasm.{js,wasm}`) も
+作ります。生成物なのでコミットしていません。`wasm/` か `Dockerfile` の `wasm` ステージを
+変えたら作り直します。中身はイメージと同じステージをビルドして取り出すだけで、変わって
+いなければキャッシュで一瞬です。
+
+```sh
+./scripts/build-wasm.sh        # docker
+./scripts/build-wasm.sh wslc   # docker の代わりに wslc
 ```
 
 ### 各自の設定

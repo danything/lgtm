@@ -1,8 +1,4 @@
-# 整形 (`bun fmt`。`package.json` の format・lint から呼ぶ)。書き方は既定のまま、外すものだけ
+# 整形 (`bun fmt`。`package.json` の format・lint から呼ぶ)。書き方は既定のまま
 [fmt]
 # import を並べ替える (副作用だけの import は順を変えない)
 sortImports = true
-ignorePatterns = [
-  # scripts/build-wasm.sh が出す Emscripten の糊 (手では触らない。隣の .d.ts は手書き)
-  "src/lib/lgtm/vendor/lgtm-wasm.js",
-]

@@ -36,3 +36,8 @@ yarn-error.log*
 /compose.override.yml
 /images/*
 /data/
+
+# The browser's wasm, built from wasm/ by the Dockerfile (scripts/build-wasm.sh
+# for local development). lgtm-wasm.d.ts beside them is hand-written and kept.
+/src/lib/lgtm/vendor/lgtm-wasm.js
+/src/lib/lgtm/vendor/lgtm-wasm.wasm
