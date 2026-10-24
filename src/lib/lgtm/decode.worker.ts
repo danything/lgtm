@@ -113,7 +113,13 @@ async function convert({ id, file }: Job) {
 			const width = dec.width();
 			const height = dec.height();
 			const stamper = new Stamper(width, height, mark);
-			send({ type: "begin", id, width: stamper.width, height: stamper.height });
+			send({
+				type: "begin",
+				id,
+				width: stamper.width,
+				height: stamper.height,
+				frames: dec.frameCount(),
+			});
 			const ctx = new OffscreenCanvas(width, height).getContext("2d");
 			if (!ctx) throw new Error("no 2d context");
 			for (let f = dec.next(); f; f = dec.next()) {
@@ -130,7 +136,13 @@ async function convert({ id, file }: Job) {
 	} else {
 		const bitmap = await createImageBitmap(file);
 		const stamper = new Stamper(bitmap.width, bitmap.height, mark);
-		send({ type: "begin", id, width: stamper.width, height: stamper.height });
+		send({
+			type: "begin",
+			id,
+			width: stamper.width,
+			height: stamper.height,
+			frames: 1,
+		});
 		const rgba = stamper.stamp(bitmap);
 		bitmap.close();
 		await sendFrame(id, rgba, 0);

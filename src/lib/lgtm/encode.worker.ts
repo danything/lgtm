@@ -2,9 +2,10 @@
 /**
  * Second half of turning a picture into an LGTM image: libwebp (wasm) takes
  * the stamped frames one by one as the decoding worker sends them, and the
- * finished (animated) WebP goes back to the page.
+ * finished (animated) WebP goes back to the page, with progress on the way.
+ * Encoding is the slower half, so its pace is the one worth showing.
  */
-import type { Ack, Connect, Result, ToEncoder } from "./protocol";
+import type { Ack, Connect, FromEncoder, ToEncoder } from "./protocol";
 import type { Encoder } from "./vendor/lgtm-wasm.js";
 import { loadWasm } from "./wasm";
 
@@ -12,12 +13,15 @@ import { loadWasm } from "./wasm";
 const QUALITY = 80;
 
 let port: MessagePort | undefined;
-const jobs = new Map<number, { encoder?: Encoder; error?: string }>();
+const jobs = new Map<
+	number,
+	{ encoder: Encoder; total: number; done: number; error?: string }
+>();
 
-const reply = (result: Result) =>
-	result.ok
-		? self.postMessage(result, [result.webp.buffer])
-		: self.postMessage(result);
+const tell = (msg: FromEncoder) =>
+	msg.type === "result" && msg.ok
+		? self.postMessage(msg, [msg.webp.buffer])
+		: self.postMessage(msg);
 
 async function handle(msg: ToEncoder) {
 	switch (msg.type) {
@@ -25,6 +29,8 @@ async function handle(msg: ToEncoder) {
 			const wasm = await loadWasm();
 			jobs.set(msg.id, {
 				encoder: new wasm.Encoder(msg.width, msg.height, QUALITY),
+				total: msg.frames,
+				done: 0,
 			});
 			return;
 		}
@@ -32,9 +38,16 @@ async function handle(msg: ToEncoder) {
 			const job = jobs.get(msg.id);
 			// A failed frame poisons the job, but the rest are still taken and
 			// acknowledged so the decoder is never left waiting.
-			if (job?.encoder && !job.error) {
+			if (job && !job.error) {
 				if (!job.encoder.add(new Uint8Array(msg.rgba), msg.duration))
 					job.error = "encode failed";
+				job.done += 1;
+				tell({
+					type: "progress",
+					id: msg.id,
+					done: job.done,
+					total: job.total,
+				});
 			}
 			port?.postMessage({ type: "ack" } satisfies Ack);
 			return;
@@ -42,19 +55,24 @@ async function handle(msg: ToEncoder) {
 		case "end": {
 			const job = jobs.get(msg.id);
 			jobs.delete(msg.id);
-			const webp = job?.error ? null : job?.encoder?.finish();
-			job?.encoder?.delete();
-			reply(
+			const webp = job && !job.error ? job.encoder.finish() : null;
+			job?.encoder.delete();
+			tell(
 				webp
-					? { id: msg.id, ok: true, webp }
-					: { id: msg.id, ok: false, error: job?.error ?? "encode failed" },
+					? { type: "result", id: msg.id, ok: true, webp }
+					: {
+							type: "result",
+							id: msg.id,
+							ok: false,
+							error: job?.error ?? "encode failed",
+						},
 			);
 			return;
 		}
 		case "fail": {
-			jobs.get(msg.id)?.encoder?.delete();
+			jobs.get(msg.id)?.encoder.delete();
 			jobs.delete(msg.id);
-			reply({ id: msg.id, ok: false, error: msg.error });
+			tell({ type: "result", id: msg.id, ok: false, error: msg.error });
 			return;
 		}
 	}
@@ -72,7 +90,8 @@ self.onmessage = ({ data }: MessageEvent<Connect>) => {
 	port.onmessage = ({ data: msg }: MessageEvent<ToEncoder>) => {
 		queue = queue.then(() =>
 			handle(msg).catch((e) =>
-				reply({
+				tell({
+					type: "result",
 					id: msg.id,
 					ok: false,
 					error: e instanceof Error ? e.message : String(e),

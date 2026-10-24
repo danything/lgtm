@@ -1,10 +1,13 @@
 <script lang="ts">
 import { copyText, lgtmImgTag } from "#lib/clipboard.js";
-import { makeLgtm } from "#lib/lgtm/index.js";
+import { makeLgtm, UnsupportedBrowserError } from "#lib/lgtm/index.js";
 import { setMessage } from "#lib/stores/toast.svelte.js";
 import { refreshAll } from "$app/navigation";
 
 let isGenerating = $state(false);
+// 0..1 across the whole batch. A long animation takes seconds, and a bare
+// "生成中" gives no sign it is getting anywhere.
+let progress = $state(0);
 let inputRef: HTMLInputElement | undefined = $state();
 // dragenter and dragleave fire again for every element the pointer crosses, so
 // a plain boolean flickers as the file moves over the page. Counting entries
@@ -15,10 +18,11 @@ const dragging = $derived(depth > 0);
 async function upload(files: FileList) {
 	try {
 		isGenerating = true;
+		progress = 0;
 		// Converted and stamped here, in the browser; the server only checks
 		// and stores what it is sent.
 		const formData = new FormData();
-		for (const file of await makeLgtm([...files]))
+		for (const file of await makeLgtm([...files], (p) => (progress = p)))
 			formData.append("files", file);
 		const res = await fetch("/lgtm/upload", { method: "POST", body: formData });
 		if (!res.ok) throw new Error("upload failed");
@@ -35,8 +39,12 @@ async function upload(files: FileList) {
 					: "リンクをコピーしました"
 				: "画像生成完了",
 		);
-	} catch {
-		setMessage("画像生成失敗");
+	} catch (e) {
+		setMessage(
+			e instanceof UnsupportedBrowserError
+				? "このブラウザでは画像を変換できません。最新のブラウザでお試しください"
+				: "画像生成失敗",
+		);
 	} finally {
 		await refreshAll();
 		if (inputRef) inputRef.value = "";
@@ -96,6 +104,7 @@ $effect(() => {
 	{#if isGenerating}
 		<span class="spin"></span>
 		生成中
+		<span class="pct">{Math.floor(progress * 100)}%</span>
 	{:else}
 		画像を追加
 	{/if}
@@ -124,6 +133,13 @@ button {
 	align-items: center;
 	justify-content: center;
 	gap: 0.4rem;
+}
+/* 数字が変わるたびにボタンの幅が変わると、ヘッダーの並びまで揺れる。
+   等幅の数字で、いちばん長い "100%" の幅を最初から取っておく */
+.pct {
+	min-width: 4ch;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
 }
 .veil {
 	pointer-events: none;

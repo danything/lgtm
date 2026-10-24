@@ -3,8 +3,10 @@
 # (wasm/lgtm.cpp) over libwebp and giflib, with wasm SIMD on.
 #
 # -msimd128 enables wasm SIMD, and -msse2/-msse4.1 make libwebp compile its
-# SSE code paths, which Emscripten turns into wasm SIMD. Sources are pinned to
-# exact commits.
+# SSE code paths, which Emscripten turns into wasm SIMD. libwebp's CMake check
+# finds SSE4.1 under Emscripten but not SSE2, and the SSE4.1 code needs the SSE2
+# helpers, so both are switched on explicitly. Sources are pinned to exact
+# commits.
 #
 # Run from the repo root with a Docker-compatible CLI (docker, wslc, ...):
 #   ./scripts/build-wasm.sh [docker|wslc]
@@ -18,14 +20,15 @@ mkdir -p "$OUT"
 "$CLI" run --rm -v "$ROOT/wasm:/src:ro" -v "$OUT:/out" emscripten/emsdk:3.1.56 sh -euc '
 	cd /tmp
 	git clone -q https://github.com/webmproject/libwebp.git libwebp
-	git -C libwebp checkout -q 6c484cbf92e81a5673b24485ac02d211f69be5b7 # v1.3.2
+	git -C libwebp checkout -q 4fa21912338357f89e4fd51cf2368325b59e9bd9 # v1.6.0
 	git clone -q https://git.code.sf.net/p/giflib/code giflib
 	git -C giflib checkout -q edff4aed17f857442ab0cac31566572ba08f93d3 # 6.1.3
 
 	FLAGS="-O3 -msimd128 -msse2 -msse4.1"
+	WEBP_SIMD="-DWEBP_HAVE_SSE2 -DWEBP_HAVE_SSE41"
 	emcmake cmake -S libwebp -B libwebp/build \
 		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_C_FLAGS="$FLAGS" \
+		-DCMAKE_C_FLAGS="$FLAGS $WEBP_SIMD" \
 		-DCMAKE_DISABLE_FIND_PACKAGE_Threads=1 \
 		-DWEBP_ENABLE_SIMD=ON \
 		-DWEBP_BUILD_CWEBP=OFF -DWEBP_BUILD_DWEBP=OFF \
