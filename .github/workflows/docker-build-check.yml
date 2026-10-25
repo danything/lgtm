@@ -24,6 +24,8 @@ jobs:
   # compiles can make a wasm that fails in the browser.
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     # Safety net for an image-tag PR opened by someone else; see paths-ignore.
     if: github.head_ref != 'bump-lgtm-image'
     steps:
