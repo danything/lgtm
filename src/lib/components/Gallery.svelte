@@ -17,7 +17,7 @@
   import CopyButton from "./CopyButton.svelte";
   import DeleteButton from "./DeleteButton.svelte";
   import PreviewButton from "./PreviewButton.svelte";
-  import "@anyblades/blades/layered/components/modal";
+  import "@anyblades/blades/components/modal";
 
   let {
     fileNameList,
