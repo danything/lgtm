@@ -59,8 +59,8 @@ spec:
   restic:
     repository: volsync-lgtm-db
     copyMethod: Snapshot
-    retain: {daily: 7, weekly: 4, monthly: 6}
-    moverSecurityContext: {runAsUser: 0, runAsGroup: 0}
+    retain: { daily: 7, weekly: 4, monthly: 6 }
+    moverSecurityContext: { runAsUser: 0, runAsGroup: 0 }
 ---
 apiVersion: volsync.backube/v1alpha1
 kind: ReplicationSource
@@ -76,5 +76,5 @@ spec:
   restic:
     repository: volsync-lgtm-images
     copyMethod: Snapshot
-    retain: {daily: 7, weekly: 4, monthly: 6}
-    moverSecurityContext: {runAsUser: 0, runAsGroup: 0}
+    retain: { daily: 7, weekly: 4, monthly: 6 }
+    moverSecurityContext: { runAsUser: 0, runAsGroup: 0 }
