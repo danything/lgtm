@@ -20,11 +20,9 @@ spec:
         projectSlug: doa
         envSlug: prod
         secretsPath: /backup/backup
-        recursive: false
   managedKubeSecretReferences:
     - secretName: volsync-lgtm-db
       secretNamespace: lgtm
-      creationPolicy: Orphan
       template:
         data:
           RESTIC_REPOSITORY: "s3:{{ .endpoint.Value }}/{{ .bucket.Value }}/volsync/lgtm/lgtm-db"
@@ -34,7 +32,6 @@ spec:
           AWS_DEFAULT_REGION: auto
     - secretName: volsync-lgtm-images
       secretNamespace: lgtm
-      creationPolicy: Orphan
       template:
         data:
           RESTIC_REPOSITORY: "s3:{{ .endpoint.Value }}/{{ .bucket.Value }}/volsync/lgtm/lgtm-images"
