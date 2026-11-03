@@ -130,7 +130,9 @@ async function convert(
         );
         const ctx = new OffscreenCanvas(1, 1).getContext("2d")!;
         ctx.drawImage(bitmap, 0, 0);
-        const corner = [...ctx.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+        const corner = Array.from(
+          ctx.getImageData(0, 0, 1, 1).data.slice(0, 3),
+        );
         return {
           head: `${tag(0)}....${tag(8)}`,
           anim: new TextDecoder("latin1").decode(webp).includes("ANIM"),
