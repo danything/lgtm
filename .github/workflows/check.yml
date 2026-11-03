@@ -1,0 +1,29 @@
+name: Check
+
+on:
+  pull_request:
+    # 画像タグを差し替える PR(bump-lgtm-image)は deploy/ しか変えない。見るコードが無いので起動しない
+    # (docker-build-check.yml と同じ理由)
+    paths-ignore: ["deploy/**"]
+  push:
+    branches: [main]
+    paths-ignore: ["deploy/**"]
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+# 読むだけなので、トークンにはこれだけ渡す
+permissions:
+  contents: read
+
+# lint と型の確かめ。ビルドとブラウザでの変換は docker-build-check.yml(wasm は Dockerfile の中で作るので、ここではビルドしない)
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun i --frozen-lockfile
+      - run: bun run lint
+      - run: bun run check
