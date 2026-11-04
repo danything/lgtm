@@ -41,7 +41,7 @@ spec:
       terminationGracePeriodSeconds: 45
       containers:
         - name: lgtm
-          image: ghcr.io/danything/lgtm:3f46dfd2654d26cfdeeeffcba1ed84bf26fe9b32
+          image: ghcr.io/danything/lgtm:c221d2a27e5bbd44f23fd3d653cf5bc27e58273c
           ports:
             - containerPort: 3000
           # Endpoint removal and SIGTERM race each other. Sleeping first lets
