@@ -220,6 +220,14 @@ html {
 	 */
   scrollbar-gutter: stable;
 }
+/*
+ * ダイアログ(Gallery の拡大)を開いている間は、後ろのページを巻かない。
+ * Esc・背景のクリックで閉じても :modal が外れるので、ひとりでに戻る。
+ * スクロールバーの幅は上の scrollbar-gutter で空けたままなので、横にずれない。
+ */
+html:has(dialog:modal) {
+  overflow: hidden;
+}
 body {
   background: var(--ui-bg);
   /* テーマを切り替えたとき、地と字の色がふわっと移る */
