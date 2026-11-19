@@ -51,7 +51,7 @@ RUN mkdir /out \
 FROM scratch AS wasm-out
 COPY --from=wasm /out/ /
 
-FROM oven/bun:1.4.4-slim AS base
+FROM oven/bun:1.4.5-slim AS base
 WORKDIR /usr/src/app
 EXPOSE 3000
 ENV BODY_SIZE_LIMIT=100M
@@ -74,7 +74,7 @@ RUN mkdir -p /out/data /out/images
 # Distroless Bun: no shell or package manager, only the runtime and the glibc,
 # CA certificates and tzdata it needs. Runs as 1000:1000, the uid of the slim
 # image's bun user, so the existing PVCs stay writable.
-FROM oven/bun:1.4.4-distroless
+FROM oven/bun:1.4.5-distroless
 WORKDIR /usr/src/app
 EXPOSE 3000
 ENV BODY_SIZE_LIMIT=100M
