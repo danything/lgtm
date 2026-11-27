@@ -9,7 +9,8 @@
     "start": "bun ./build",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --tsgo",
     "lint": "oxlint && bun fmt --check",
-    "format": "oxlint --fix && bun fmt"
+    "format": "oxlint --fix && bun fmt",
+    "test": "bun test src"
   },
   "devDependencies": {
     "@anyblades/blades": "^3.1.4",
