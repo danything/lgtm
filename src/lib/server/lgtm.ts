@@ -70,12 +70,12 @@ export function deleteFile(fileName: string, userKey: string): boolean {
 
 /** Rows first: a stray file is invisible, a row without its file is a 404 tile. */
 export function deleteAllImages(userKey: string): number {
+  // One statement, so an upload landing in between cannot lose its row.
   const rows = db()
     .query<{ fileName: string }, [string]>(
-      "SELECT fileName FROM lImage WHERE userKey = ?",
+      "DELETE FROM lImage WHERE userKey = ? RETURNING fileName",
     )
     .all(userKey);
-  db().run("DELETE FROM lImage WHERE userKey = ?", [userKey]);
   for (const { fileName } of rows) removeImage(fileName);
   return rows.length;
 }
