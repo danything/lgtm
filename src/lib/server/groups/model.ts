@@ -27,6 +27,8 @@ class ModelUnavailable extends Error {
 
 function load(): Promise<Loaded> {
   loaded ??= (async () => {
+    // Its Linux build reports usage to Microsoft otherwise (the image sets it too).
+    process.env.ORT_DISABLE_TELEMETRY ??= "1";
     const ort = await import("onnxruntime-node");
     // One thread: grouping waits, page requests should not.
     const session = await ort.InferenceSession.create(`${DIR}/vision.onnx`, {

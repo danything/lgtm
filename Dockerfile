@@ -115,12 +115,15 @@ FROM oven/bun:1.4.5-distroless
 WORKDIR /usr/src/app
 EXPOSE 3000
 ENV BODY_SIZE_LIMIT=100M
+# onnxruntime's Linux build reports usage to Microsoft unless told not to.
+ENV ORT_DISABLE_TELEMETRY=1
 USER 1000:1000
 # Everything else the server needs is bundled into build/.
 COPY --from=builder --chown=1000:1000 /out/ ./
 COPY --from=builder --chown=1000:1000 /usr/src/app/package.json ./package.json
 COPY --from=builder --chown=1000:1000 /usr/src/app/build ./build
-COPY --from=model /vision.onnx ./model/vision.onnx
+# ADD from a URL leaves it 0600 and root's.
+COPY --from=model --chown=1000:1000 /vision.onnx ./model/vision.onnx
 COPY --from=builder /lib-extra/ /usr/lib/x86_64-linux-gnu/
 # The base image's entrypoint too; CMD is only the arguments.
 ENTRYPOINT ["/usr/local/bin/bun"]

@@ -68,6 +68,7 @@ LGTM の文字は、置いた場所が分かっているので、塗りつぶし
 
 モデルはリポジトリに入れず、イメージのビルドで Hugging Face から版とハッシュを決めて取ります。
 手元では `./scripts/build-wasm.sh` が `model/` に置きます。無いときはグループ分けだけが止まります。
+onnxruntime の Linux 版は使い方を Microsoft に送るので、`ORT_DISABLE_TELEMETRY=1` で止めています。
 
 ## ログイン
 
