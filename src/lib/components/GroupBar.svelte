@@ -55,16 +55,13 @@
    * 同じ隙間を空けて貼り付く。左右は親の余白を戻してヘッダーの端にそろえる
    */
   .sticky {
-    /* 色はヘッダーと同じ面の色を透かさずに。字が 2 段あり、下の LGTM の白い字が
-       透けて重なると読みにくい */
-    --ui-lift-bg: var(--ui-pop);
     position: sticky;
     z-index: 30;
     top: calc(var(--ui-header-bottom) + var(--ui-header-top));
     margin-top: var(--ui-header-top);
     margin-inline: calc(var(--ui-header-inset) - var(--wrap-pad));
     border-radius: var(--ui-header-radius);
-    background: var(--ui-lift-bg);
+    background: var(--ui-float);
     box-shadow: var(--ui-shadow-pop);
     padding: 0.375rem;
     transition:

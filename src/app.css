@@ -477,7 +477,7 @@ tbody tr :is(td:last-child) {
 /* 浮いた面が、巻き始めに面と影を得る (scroll-driven。ヘッダーとトップの帯) */
 @keyframes ui-lift {
   to {
-    background-color: var(--ui-lift-bg, var(--ui-float));
+    background-color: var(--ui-float);
     box-shadow: var(--ui-shadow-pop);
   }
 }
