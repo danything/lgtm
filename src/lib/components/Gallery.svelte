@@ -9,7 +9,7 @@
 </script>
 
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { type Snippet, untrack } from "svelte";
 
   import { api } from "#lib/api.js";
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
@@ -30,6 +30,7 @@
     folders,
     folder,
     onMoved,
+    empty,
   }: {
     fileNameList: File[];
     userKey?: string;
@@ -38,6 +39,8 @@
     folders?: Folder[];
     folder?: FolderFilter;
     onMoved?: (from: number | null, to: number | null) => void;
+    /** Shown once nothing is left, including after the last tile moves or goes. */
+    empty?: Snippet;
   } = $props();
 
   let moveDialog: MoveDialog | undefined = $state();
@@ -151,6 +154,9 @@
   });
 </script>
 
+{#if items.length === 0}
+  {@render empty?.()}
+{/if}
 <!-- overflow は切らない (端のタイルのホバーの拡大が欠ける) -->
 <div class="tiles">
   {#each items as file, i (file.name)}
