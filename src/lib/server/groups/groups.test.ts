@@ -115,6 +115,29 @@ describe("grouping", () => {
     expect(groupSections().map((g) => g.key)).toEqual(["cat", "other"]);
   });
 
+  test("a picture queued as the run ends is not left behind", async () => {
+    // Queued a few ticks after the last answer, around where the run stops.
+    for (let ticks = 0; ticks < 5; ticks++) {
+      db().run("DELETE FROM lImage");
+      const [a, b] = await create([webpFile(1, 1), webpFile(1, 1)], "u1");
+      let late: Promise<void> | undefined;
+      useEmbedder(() => {
+        const answer = Promise.resolve(vector("food"));
+        if (!late) {
+          let p: Promise<unknown> = answer;
+          for (let i = 0; i < ticks; i++) p = p.then(() => {});
+          late = p.then(() => groupLater([b]));
+        }
+        return answer;
+      });
+      await groupLater([a]);
+      await late;
+      expect(groupSections()).toEqual([
+        { key: "food", label: "食べ物", count: 2 },
+      ]);
+    }
+  });
+
   test("one picture failing does not stop the rest", async () => {
     let calls = 0;
     useEmbedder(async () => {

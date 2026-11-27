@@ -21,35 +21,31 @@ let busy = false;
 let done: Promise<void> = Promise.resolve();
 
 async function work(): Promise<void> {
-  try {
-    await drain();
-  } finally {
-    busy = false;
-  }
-}
-
-async function drain(): Promise<void> {
   const update = db().prepare(
     "UPDATE lImage SET grp = ?, embedding = ? WHERE fileName = ?",
   );
-  for (let name = queue.shift(); name; name = queue.shift()) {
-    try {
-      const e = await embed(await Bun.file(imagePath(name)).bytes());
-      update.run(
-        pickGroup(e),
-        new Uint8Array(e.buffer, e.byteOffset, e.byteLength),
-        name,
-      );
-    } catch (e) {
-      // Left ungrouped; the next start tries again. Without the model there
-      // is nothing to try, so say so once.
-      if ((e as Error).name === "ModelUnavailable") {
-        console.error("grouping is off:", (e as Error).message);
-        queue.length = 0;
-        return;
+  try {
+    for (let name = queue.shift(); name; name = queue.shift()) {
+      try {
+        const e = await embed(await Bun.file(imagePath(name)).bytes());
+        update.run(
+          pickGroup(e),
+          new Uint8Array(e.buffer, e.byteOffset, e.byteLength),
+          name,
+        );
+      } catch (e) {
+        // Left ungrouped; the next start tries again. Without the model there
+        // is nothing to try, so say so once.
+        if ((e as Error).name === "ModelUnavailable") {
+          console.error("grouping is off:", (e as Error).message);
+          queue.length = 0;
+          return;
+        }
+        console.error(`could not group ${name}`, e);
       }
-      console.error(`could not group ${name}`, e);
     }
+  } finally {
+    busy = false;
   }
 }
 
