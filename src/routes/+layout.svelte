@@ -98,14 +98,22 @@
   :global(:root) {
     --ui-header-top: 0.5rem;
     --ui-header-bottom: calc(var(--ui-header-top) + 3.25rem);
+    /* 浮いた面の形。トップの絞り込みの帯 (GroupBar) も同じ面にする */
+    --ui-header-inset: 0.5rem;
+    --ui-header-radius: 0.875rem;
+  }
+  @media (min-width: 640px) {
+    :global(:root) {
+      --ui-header-inset: 0.75rem;
+    }
   }
   nav {
     position: fixed;
     z-index: 40;
     top: var(--ui-header-top);
-    inset-inline: 0.5rem;
+    inset-inline: var(--ui-header-inset);
     min-height: 3.25rem;
-    border-radius: 0.875rem;
+    border-radius: var(--ui-header-radius);
     background: var(--ui-float);
     box-shadow: var(--ui-shadow-pop);
     padding: 0.375rem;
@@ -129,23 +137,12 @@
         box-shadow: none;
         animation:
           ui-drop 420ms var(--ui-ease-out) both,
-          header-lift linear both;
+          ui-lift linear both;
         animation-timeline: auto, scroll(root);
         animation-range:
           normal,
           0 3rem;
       }
-    }
-  }
-  @keyframes header-lift {
-    to {
-      background-color: var(--ui-float);
-      box-shadow: var(--ui-shadow-pop);
-    }
-  }
-  @media (min-width: 640px) {
-    nav {
-      inset-inline: 0.75rem;
     }
   }
   main {

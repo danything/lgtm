@@ -20,7 +20,7 @@
   } = $props();
 </script>
 
-<!-- ヘッダーの下に貼り付いて残る。下の画像が透けないよう地の色で塗る -->
+<!-- ヘッダーと同じ浮いた面。ヘッダーの下に貼り付いて残る -->
 <div class="sticky">
   <nav class="bar" aria-label="グループ">
     <a class="chip" class:on={group === undefined} href="/">グループ別</a>
@@ -50,23 +50,38 @@
 </div>
 
 <style>
-  /* 横の余白まで塗るため、親の余白の分だけはみ出す */
+  /*
+   * ヘッダーと同じ浮いた面 (形と色は +layout.svelte の変数)。ヘッダーの下に
+   * 同じ隙間を空けて貼り付く。左右は親の余白を戻してヘッダーの端にそろえる
+   */
   .sticky {
+    /* 色はヘッダーと同じ面の色を透かさずに。字が 2 段あり、下の LGTM の白い字が
+       透けて重なると読みにくい */
+    --ui-lift-bg: var(--ui-pop);
     position: sticky;
     z-index: 30;
-    top: var(--ui-header-bottom);
-    margin-inline: calc(-1 * var(--wrap-pad));
-    background: var(--ui-bg);
-    padding-inline: var(--wrap-pad);
+    top: calc(var(--ui-header-bottom) + var(--ui-header-top));
+    margin-top: var(--ui-header-top);
+    margin-inline: calc(var(--ui-header-inset) - var(--wrap-pad));
+    border-radius: var(--ui-header-radius);
+    background: var(--ui-lift-bg);
+    box-shadow: var(--ui-shadow-pop);
+    padding: 0.375rem;
+    transition:
+      background-color 240ms var(--ui-ease),
+      box-shadow 240ms var(--ui-ease);
   }
-  /* ヘッダーのまわり (帯より上) も塗り、巻いた画像を見せない */
-  .sticky::before {
-    position: absolute;
-    inset-inline: 0;
-    bottom: 100%;
-    height: var(--ui-header-bottom);
-    background: var(--ui-bg);
-    content: "";
+  /* ヘッダーと同じく、一番上では平らで、巻き始めに面と影が付く */
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .sticky {
+        background-color: transparent;
+        box-shadow: none;
+        animation: ui-lift linear both;
+        animation-timeline: scroll(root);
+        animation-range: 0 3rem;
+      }
+    }
   }
   /* 狭い画面では折り返さず横に流す */
   .bar {
@@ -88,7 +103,7 @@
     gap: 0.375rem;
     height: 2.75rem;
     border-radius: var(--ui-radius-full);
-    padding-inline: 0.75rem;
+    padding-inline: 0.875rem;
     color: var(--ui-fg);
     font-size: var(--ui-text-sm);
     text-decoration: none;
@@ -102,14 +117,16 @@
     color: var(--ui-primary-text);
     font-weight: 700;
   }
+  /* ヘッダーのタブと同じ印。線は押す範囲の内側に引き、真ん中から伸びる */
   .chip.on::after {
     position: absolute;
-    inset-inline: 0.75rem;
-    bottom: 0.4rem;
+    inset-inline: 0.875rem;
+    bottom: 0.3rem;
     height: 2px;
     border-radius: 1px;
     background: var(--pico-primary);
     content: "";
+    animation: ui-grow 260ms var(--ui-ease-out) both;
   }
   .count {
     color: var(--ui-muted);
