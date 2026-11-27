@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readdirSync, unlinkSync } from "node:fs";
 
 import db from "#lib/server/db.js";
 import { useScratchDir, webpFile } from "#lib/server/testing.js";
@@ -39,6 +39,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   db().run("DELETE FROM lImage");
+  for (const f of readdirSync("images")) unlinkSync(`images/${f}`);
   db().run("DELETE FROM ghUser");
   db().run(
     "INSERT INTO ghUser (key, githubId, login) VALUES ('u1', '1', 'one'), ('u2', '2', 'two')",
@@ -102,4 +103,40 @@ test("images lists newest first and caps the limit", async () => {
     url: "http://l.localhost/lgtm/images?limit=9999",
   });
   expect(await all.json()).toHaveLength(3);
+});
+
+describe("errors", () => {
+  const status = async (res: Response | Promise<Response>) => {
+    const r = await res;
+    expect(typeof (await r.clone().json()).error).toBe("string");
+    return r.status;
+  };
+
+  test("upload answers a status for each kind of bad file", async () => {
+    const up = (body: BodyInit) => call(upload, { key: "u1", body });
+    expect(await status(up(form()))).toBe(400);
+    expect(await status(up("not a form"))).toBe(400);
+    expect(await status(up(form(new File([new Uint8Array(64)], "x"))))).toBe(
+      415,
+    );
+    expect(await status(up(form(webpFile(961, 1))))).toBe(422);
+    expect(await status(up(form(webpFile(1, 1, 30 * 1024 * 1024))))).toBe(413);
+    expect(db().query("SELECT * FROM lImage").all()).toEqual([]);
+  });
+
+  test("delete answers 400 for a body that is not JSON", async () => {
+    expect(await status(call(remove, { key: "u1", body: "{" }))).toBe(400);
+  });
+
+  test("a failed write leaves nothing behind and answers 500", async () => {
+    db().run("DROP TABLE lImage");
+    try {
+      const res = await call(upload, { key: "u1", body: form(webpFile(1, 1)) });
+      expect(await status(res)).toBe(500);
+      expect(readdirSync("images")).toEqual([]);
+    } finally {
+      db().run("PRAGMA user_version = 0");
+      (await import("#lib/server/db.js")).migrate(db());
+    }
+  });
 });

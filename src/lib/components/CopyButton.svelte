@@ -2,8 +2,7 @@
   import { copyAndReport } from "#lib/clipboard.js";
 
   let {
-    // A function rather than a string: callers build their text from
-    // `location`, which does not exist while the page renders on the server.
+    // A function: the text needs `location`, which SSR does not have.
     text,
     onClick = () => {},
   }: {

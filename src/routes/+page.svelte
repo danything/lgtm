@@ -12,9 +12,7 @@
     "LGTM画像ジェネレーター｜GIF対応・ワンクリックでコピーしてGitHubに貼れる";
   const description =
     "画像やGIFをドラッグ&ドロップするだけでLGTM画像を作成。アニメーションもそのまま残ります。みんなが作ったLGTM画像はクリックひとつで貼り付け用の画像タグをコピーでき、GitHubのプルリクエストのレビューにそのまま貼れます。";
-  // 構造化データの script は、ここで文字列にして @html で置く。
-  // 画面の側に `<script` と書くと、oxlint が Svelte の script の塊と取り違えて読めない。
-  // 閉じタグは、この script の塊の終わりと取られないよう `<` を分けて書く
+  // markup に `<script` があると oxlint が読めないので、ここで文字列にして @html で置く
   const jsonLd = $derived(
     `<script type="application/ld+json">${JSON.stringify({
       "@context": "https://schema.org",
@@ -42,15 +40,14 @@
   {@html jsonLd}
 </svelte:head>
 
-<!-- 画面には一覧しかなく、検索エンジンと読み上げには何のページか伝わらない。
-     見出しだけは文字で置いておく(見た目は一覧のまま)。 -->
+<!-- 一覧だけでは何のページか伝わらないので、見出しを隠して置く -->
 <h1 class="visually-hidden">LGTM画像ジェネレーター・LGTM画像一覧</h1>
 
 {#if data.message !== undefined}
   <div class="wrap"><ErrorAlert>{data.message}</ErrorAlert></div>
 {/if}
 
-<!-- 左右の余白はヘッダーと同じ 1rem: ページ全体で一本の余白にする。 -->
+<!-- 左右の余白はヘッダーと同じ 1rem -->
 <div class="wrap">
   <Gallery fileNameList={data.images} userKey={data.wkey} find={false} />
 </div>

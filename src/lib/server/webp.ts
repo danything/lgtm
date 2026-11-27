@@ -1,11 +1,6 @@
 /**
- * Width and height of a WebP file, read from its header alone, or null when
- * the bytes are not a well-formed WebP. Images arrive already converted by the
- * browser now, so the server no longer decodes them; this is what it checks
- * instead, and where the gallery gets each picture's proportions from.
- *
- * The first chunk says which of the three layouts follows: VP8X (extended:
- * animation, alpha), "VP8 " (plain lossy) or VP8L (plain lossless).
+ * Width and height from a WebP header, or null when the bytes are not a whole
+ * WebP. The first chunk is VP8X (extended), "VP8 " (lossy) or VP8L (lossless).
  */
 export function webpSize(
   bytes: Uint8Array,

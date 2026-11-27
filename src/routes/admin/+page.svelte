@@ -1,7 +1,9 @@
 <script lang="ts">
   import { refreshAll } from "$app/navigation";
 
-  import { setMessage } from "#lib/stores/toast.svelte.js";
+  import { api } from "#lib/api.js";
+  import { onWindowClick } from "#lib/outside-click.js";
+  import { setError, setMessage } from "#lib/stores/toast.svelte.js";
 
   import type { PageProps } from "./$types";
   import "@anyblades/blades/content/table";
@@ -9,17 +11,11 @@
   let { data }: PageProps = $props();
 
   let saving = $state<string>();
-  // Deleting an account cannot be undone and takes its images with it, so the
-  // first click only arms the button; any other click puts it back.
+  // Takes the images too and cannot be undone: the first click only arms it.
   let armed = $state<string>();
 
   $effect(() => {
-    if (armed === undefined) return;
-    const disarm = () => {
-      armed = undefined;
-    };
-    window.addEventListener("click", disarm);
-    return () => window.removeEventListener("click", disarm);
+    if (armed !== undefined) return onWindowClick(() => (armed = undefined));
   });
 
   async function send(
@@ -29,18 +25,13 @@
   ) {
     try {
       saving = userKey;
-      const res = await fetch("/api/admin", {
+      const ret = await api<{ images?: number }>("/api/admin", {
         headers: { "Content-Type": "application/json" },
         ...init,
       });
-      const ret = await res.json();
-      if (!res.ok || ret.error)
-        throw new Error(ret.error ?? "変更できませんでした");
       setMessage(ok(ret));
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "変更できませんでした",
-      );
+      setError(error instanceof Error ? error.message : "変更できませんでした");
     } finally {
       await refreshAll();
       saving = undefined;
@@ -72,8 +63,7 @@
   }
 
   const number = new Intl.NumberFormat("ja-JP");
-  // JST explicitly, so the server's UTC render and the browser's do not disagree
-  // and swap on hydration. The daily rows beside it are JST too.
+  // JST on both sides, or the UTC server render swaps on hydration.
   const dateTime = new Intl.DateTimeFormat("ja-JP", {
     dateStyle: "short",
     timeStyle: "short",
@@ -187,8 +177,7 @@
                   {user.admin ? "解除" : "付与"}
                 </button>
               {:else}
-                <!-- Owns pictures but has never signed in here: an account
-								     from before the x.com sign-in was retired. -->
+                <!-- An owner from before GitHub sign-in. -->
                 <span class="tag">ログインなし</span>
               {/if}
             </td>

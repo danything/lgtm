@@ -1,14 +1,6 @@
-// The image codecs the browser uses to make LGTM images, compiled to wasm by
-// scripts/build-wasm.sh: libwebp to encode (and to read animated WebP) and
-// giflib to read GIFs. Everything else -- resizing, the LGTM overlay, still
-// images in other formats -- happens in JS on a canvas.
-//
-// Encoding takes frames one at a time, so the encoder can run in its own
-// worker while another worker is still decoding and stamping the next ones.
-// Decoders likewise hand out one finished frame per call.
-//
-// Every buffer handed back to JS is a fresh Uint8Array (copied out of the
-// wasm heap), so JS can keep or transfer it without it changing underneath.
+// libwebp (encode, and read animated WebP) and giflib, one frame per call so
+// decoding and encoding can run in separate workers. Buffers returned to JS are
+// fresh copies out of the wasm heap.
 
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
@@ -151,9 +143,8 @@ class Encoder {
 	bool failed_ = false;
 };
 
-// Plays a GIF the way browsers do: each image is drawn over what the last one
-// left behind, its transparent index lets that show through, and its disposal
-// says what to clear before the next.
+// Plays a GIF the way browsers do: drawn over the last frame, with its
+// transparency and disposal.
 class GifDecoder {
  public:
 	explicit GifDecoder(std::string bytes) : src_(std::move(bytes)) {

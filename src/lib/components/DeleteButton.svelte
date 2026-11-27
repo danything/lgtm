@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { setMessage } from "#lib/stores/toast.svelte.js";
+  import { ApiError, postJson } from "#lib/api.js";
+  import { onWindowClick } from "#lib/outside-click.js";
+  import { setError, setMessage } from "#lib/stores/toast.svelte.js";
 
   let {
     fileName,
@@ -9,27 +11,17 @@
     onDeleted?: () => void;
   } = $props();
 
-  // Deleting an image cannot be undone, and the button sits on top of one in a
-  // grid of them. The first click only arms it -- the button turns red and says
-  // 削除 in words, so it does not rest on colour alone -- and the second one
-  // means it.
+  // It cannot be undone, so the first click only arms it and any other click
+  // disarms it.
   let armed = $state(false);
   let deleting = $state(false);
 
-  // Anything else you click puts it back. An armed delete button left lying
-  // around behind you is a trap.
   $effect(() => {
-    if (!armed) return;
-    const disarm = () => {
-      armed = false;
-    };
-    window.addEventListener("click", disarm);
-    return () => window.removeEventListener("click", disarm);
+    if (armed) return onWindowClick(() => (armed = false));
   });
 
   async function onClickDelete(e: MouseEvent) {
-    // Without this the window listener above would disarm on the very click
-    // that armed it, and the gallery would open the image behind the button.
+    // Keeps the window listener from disarming on the arming click.
     e.stopPropagation();
     if (!armed) {
       armed = true;
@@ -38,17 +30,11 @@
     armed = false;
     deleting = true;
     try {
-      const res = await fetch("/lgtm/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName }),
-      });
-      if (res.ok) {
-        onDeleted?.();
-        setMessage("画像削除完了");
-      } else {
-        setMessage("画像削除失敗");
-      }
+      await postJson("/lgtm/delete", { fileName });
+      onDeleted?.();
+      setMessage("画像削除完了");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "削除できませんでした");
     } finally {
       deleting = false;
     }
@@ -84,11 +70,11 @@
 </button>
 
 <style>
-  /* 確定待ちは字が付くぶん幅を広げる。並びの右端から左へ伸びる */
+  /* 確定待ちは字のぶん、右端から左へ伸びる */
   .armed {
     width: auto;
     padding-inline: 0.625rem 0.75rem;
-    /* 確かめを待っていることを、小さく揺れて知らせる */
+    /* 確かめを待っていると揺れて知らせる */
     animation: ui-nudge 320ms var(--ui-ease) both;
   }
   .label {

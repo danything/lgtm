@@ -2,8 +2,7 @@
   let { onOpen }: { onOpen: () => void } = $props();
 
   function onClick(e: MouseEvent) {
-    // The tile underneath copies the link; this is the other thing you might
-    // have wanted, so it must not also do that.
+    // The tile underneath copies, so this must not.
     e.stopPropagation();
     onOpen();
   }

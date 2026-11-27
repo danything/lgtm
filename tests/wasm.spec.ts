@@ -1,24 +1,13 @@
 /**
- * The built app's image conversion, end to end in a real browser: the two
- * workers from src/lib/lgtm with the wasm built by the Dockerfile. Catches a
- * compiler (emsdk) or library update that still builds but no longer works,
- * which the image build alone would let through to an automerge.
- *
- * Runs against a running app, BASE_URL (default http://localhost:3000):
- *   bunx playwright test
- *
- * Signed out there is no upload button, so the workers are driven directly,
- * over the same messages makeLgtm sends (src/lib/lgtm/index.ts).
+ * The built image's conversion in a real browser, which catches an emsdk or
+ * library update that builds but no longer works. Drives the workers directly
+ * (signed out there is no upload button). BASE_URL defaults to localhost:3000.
  */
 import { expect, type Page, test } from "@playwright/test";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 
-/**
- * A two-frame animated GIF of w x h. The LZW data puts a clear code before
- * every two pixels, so the code size never grows past 3 bits and no real
- * compression is needed.
- */
+/** A two-frame GIF; a clear code every two pixels keeps LZW at 3 bits. */
 function gif(w: number, h: number): Uint8Array {
   const out: number[] = [];
   const u16 = (n: number) => out.push(n & 0xff, n >> 8);

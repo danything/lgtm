@@ -10,9 +10,10 @@
 <script lang="ts">
   import { untrack } from "svelte";
 
+  import { api } from "#lib/api.js";
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
   import { FIRST_LIMIT, PER_PAGE } from "#lib/paging.js";
-  import { setMessage } from "#lib/stores/toast.svelte.js";
+  import { setError } from "#lib/stores/toast.svelte.js";
 
   import CopyButton from "./CopyButton.svelte";
   import DeleteButton from "./DeleteButton.svelte";
@@ -29,37 +30,26 @@
     find: boolean;
   } = $props();
 
-  // Seeds SSR output with the initial page; the $effect below only re-syncs
-  // on later prop changes, which now means an upload or a delete calling
-  // refreshAll. Reading the prop through untrack says that capturing just
-  // this first value is the point, rather than an oversight the compiler
-  // should flag.
-  // Roughly the first screen on a desktop; a phone shows fewer, and loading
-  // a couple of extra up front costs less than delaying the ones in view.
+  // About the first screen on a desktop; the rest load lazily.
   const EAGER = 6;
 
+  // Seeded once for SSR; the $effect below re-syncs on later prop changes.
   let items = $state<File[]>(untrack(() => fileNameList));
-  // Plain variables rather than $state: nothing renders from them, and the
-  // effect below resets them, so tracking them would make it depend on its
-  // own writes.
+  // Not $state: nothing renders from them, and the effect resets them.
   let isGetting = false;
-  // Bumped whenever the list is reset, so a fetch that was already in flight
-  // cannot append its answer to the list that replaced the one it was for.
+  // Bumped on reset so a fetch in flight cannot append to the new list.
   let generation = 0;
   let isDone = false;
   let sentinel: HTMLDivElement | undefined = $state();
   let diaImage = $state<File>();
-  // The tile whose link was just copied, for a moment: the hint in its middle
-  // turns into a tick. Only which tile; the coming and going is CSS.
+  // The tile just copied, which shows a tick for a moment.
   let copied = $state<string>();
   let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
-  // Success is said on the tile itself, where the click was, so there is no
-  // toast for it as well. Failure leaves nothing on the tile, so that one does
-  // go to the toast.
+  // Success shows on the tile; failure has nowhere there, so it toasts.
   async function copyTile(name: string) {
     if (!(await copyText(lgtmImgTag(name)))) {
-      setMessage("コピーできませんでした");
+      setError("コピーできませんでした");
       return;
     }
     copied = name;
@@ -76,10 +66,7 @@
     dialog?.close();
   }
 
-  // Marks the picture once its bytes are in, which ends the tile's pulse and
-  // fades the image up. A server-rendered image can finish before hydration
-  // attaches the listener, so one that is already complete counts at once.
-  // An error counts too: a broken file is not going to arrive by waiting.
+  // An image can finish before hydration, and a broken one never will.
   function markLoaded(img: HTMLImageElement) {
     const done = () => img.classList.add("loaded");
     if (img.complete) {
@@ -98,22 +85,26 @@
     if (isGetting || isDone) return;
     isGetting = true;
     const started = generation;
-    const res = await fetch(
-      `/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}`,
-    );
-    const pageList: File[] = await res.json();
+    let page: File[];
+    try {
+      page = await api<File[]>(
+        `/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}`,
+      );
+    } catch (e) {
+      // Stops here; scrolling back to the end tries again.
+      if (started === generation) {
+        setError(`続きを読み込めませんでした: ${(e as Error).message}`);
+        isGetting = false;
+      }
+      return;
+    }
     if (started !== generation) return;
-    // Someone uploading in the meantime pushes everything down, so the
-    // start of this batch can repeat the end of the last one. The list is
-    // keyed by name, and a repeated key is an error, not a duplicate tile.
+    // An upload meanwhile shifts rows down, so drop repeats of what we have.
     const have = new Set(items.map((f) => f.name));
-    items = [...items, ...pageList.filter((f) => !have.has(f.name))];
-    // A short answer is the last one.
-    isDone = pageList.length < PER_PAGE;
+    items = [...items, ...page.filter((f) => !have.has(f.name))];
+    isDone = page.length < PER_PAGE;
     isGetting = false;
-    // The observer only reports changes. If this page was too short to push
-    // the sentinel out of reach it stays intersecting and nothing fires
-    // again, so observe it afresh, which reports where it stands now.
+    // Still intersecting after a short page fires nothing, so look again.
     if (!isDone && sentinel) {
       observer.unobserve(sentinel);
       observer.observe(sentinel);
@@ -126,10 +117,7 @@
     isGetting = false;
     isDone = fileNameList.length < FIRST_LIMIT;
     if (!sentinel) return;
-    // Watches a marker after the last tile instead of measuring the page on
-    // every scroll event; the margin starts the fetch 800px before it shows.
-    // At 300px a quick scroll on a desktop reached the end of the first 12
-    // tiles before the next batch arrived.
+    // Starts 800px early; at 300px a quick scroll outran the fetch.
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) loadMore(observer);
@@ -141,37 +129,20 @@
   });
 </script>
 
-<!-- ここでは overflow を切らない: 箱に overflow-x を付けると両方の軸が切られ、
-     行の端でホバーの拡大が欠けた。タイルの幅は 32rem 止まりなので 5% 伸びても
-     片側 13px ほどで、ページ側の左右 1rem の余白に収まる。 -->
+<!-- overflow は切らない (端のタイルのホバーの拡大が欠ける) -->
 <div class="tiles">
   {#each items as file, i (file.name)}
-    <!--
-			The preview and delete buttons overlay the tile, so they have to be
-			positioned against it -- but they cannot be *inside* it while the tile
-			is itself a <button>. Nested buttons are invalid, and the parser
-			resolves them by closing the outer one early, which left the tile empty
-			and threw the image and the overlays out into the row. Keep the tile as
-			a plain positioned element and let the image be the button.
-		-->
-    <!-- --i staggers the tiles' entrance; it restarts every 12 so a page
-		     appended by the scroll does not wait seconds for its last tiles. -->
+    <!-- The tile cannot be a <button>: the overlay buttons inside it would nest. -->
+    <!-- --i staggers the entrance, restarting every 12 for appended pages. -->
     <div class="tile" style:--i={i % 12}>
-      <!-- The tile copies. Getting the tag is why anyone is here, so it
-			     is the whole picture rather than a button on top of it; the other
-			     thing you might have wanted is the button. -->
+      <!-- The whole picture copies, the reason anyone is here. -->
       <button
         class="pic"
         aria-label="画像タグをコピー"
         onclick={() => copyTile(file.name)}
         type="button"
       >
-        <!-- The tile's width comes from the picture's proportions, so they
-				     have to be known before it loads. Guessing a square here made
-				     every tile start 256px wide and jump once the image arrived,
-				     reflowing the whole row.
-				     The first few are in view on arrival, and lazy would hold them
-				     back until layout; everything after waits for the scroll. -->
+        <!-- The size up front keeps tiles from jumping when the bytes arrive. -->
         <img
           src={`/images/${file.name}`}
           alt="LGTM"
@@ -182,12 +153,7 @@
           {@attach markLoaded}
         />
       </button>
-      <!-- Clicking the picture copies, which nothing about a picture says.
-			     Hovering is the moment to mention it, in the middle where the
-			     click will land -- and the same capsule then says it worked, so
-			     there is one place to look and no toast as well. The words swap
-			     inside it; pointer-events-none so the click still reaches the
-			     picture. -->
+      <!-- Says what a click does, then that it worked, in the same place. -->
       <div class="center" aria-hidden="true">
         <div class="badge" class:done={copied === file.name}>
           {#key copied === file.name}
@@ -224,9 +190,7 @@
           {/key}
         </div>
       </div>
-      <!-- One row, so the two never have to know each other's size: delete
-			     sits to the left, and an armed delete grows leftwards from the
-			     right edge rather than pushing its neighbour along. -->
+      <!-- One row; an armed delete grows leftwards from the right edge. -->
       <div class="acts">
         {#if file.isDeletable}
           <DeleteButton
@@ -241,10 +205,7 @@
 </div>
 <div bind:this={sentinel}></div>
 <dialog bind:this={dialog}>
-  <!--
-		既定の箱は幅 32rem で止まり、拡大してもタイルと大差ない大きさだった。画面まで
-		伸ばせるようにして、縦長の画像は下の img 側で高さのほうを効かせて収める。
-	-->
+  <!-- 既定の箱は 32rem で止まるので、画面まで伸ばす -->
   <div class="box">
     <div class="shot">
       {#if diaImage}
@@ -263,15 +224,7 @@
             onClick={closeDialog}
           />
         </div>
-        <!--
-					Uploads are capped at 960px but most are well under it, and leaving
-					the width to the image renders those at 1:1 -- a 500px wide one sat
-					in an 8% corner of the screen. Asking for a width instead doesn't
-					work either: a max-height then clamps the height without pulling the
-					width back with it, and the picture stretches. So take the width from
-					the image's own proportions, picking whichever of the two limits
-					binds first. It fills the window, keeps its shape, and never spills.
-				-->
+        <!-- Width from the proportions, so it fills the window without stretching. -->
         <img
           src={`/images/${diaImage.name}`}
           alt="LGTM"
@@ -290,12 +243,7 @@
 </dialog>
 
 <style>
-  /*
- * 画像は地の上にそのまま並べる (面も枠も付けない)。タイルの角だけ丸め、指を乗せたら
- * 操作 (右上) とコピーの案内 (下) を出す。どちらも画像の上の操作なので塗らず、端から
- * 消えていく黒い影の上に白い字とアイコンを置く (denpa の docs/design.md「映像の上の操作」)。
- * 指の端末には乗せる操作が無いので、右上の操作はいつも出しておく
- */
+  /* 画像の上の操作は塗らず、消えていく影に白で置く (denpa の docs/design.md「映像の上の操作」) */
 
   /* ---- 一覧 ---- */
   .tiles {
@@ -317,7 +265,7 @@
     animation: ui-rise 520ms var(--ui-ease-out) both;
     animation-delay: calc(var(--i, 0) * 45ms);
   }
-  /* 読み込み中は、地の上を光の筋が流れる (いま動いていることを示す印なので回し続ける) */
+  /* 読み込み中は光の筋が流れる */
   .tile::before {
     position: absolute;
     inset: 0;
@@ -393,16 +341,8 @@
   .tile:has(img:not(:global(.loaded))) .acts {
     background: none;
   }
-  /*
- * 真ん中のカプセル。乗せると「コピー」が出て、押すと同じ場所で
- * 「✓ コピーしました」に変わる (通知は出さない。見るところを 1 つにする)。
- * 面は通知と同じ浮かぶカプセル。指の端末では乗せる操作が無いので、コピーできた
- * ときだけ出る
- */
-  /*
- * カプセルを置く層。タイル全体に重ね、その幅で字の長さを選ぶ (コンテナークエリ)。
- * タイルそのものを入れ物にすると、画像の比率から決まっているタイルの幅が潰れる
- */
+  /* 真ん中のカプセル。乗せると「コピー」、押すと同じ場所で「✓ コピーしました」 */
+  /* 層の幅で字の長さを選ぶ。タイルそのものを入れ物にすると幅が潰れる */
   .center {
     display: grid;
     position: absolute;
@@ -444,10 +384,7 @@
     width: 1.125rem;
     height: 1.125rem;
   }
-  /*
- * 字はタイルの幅で落とす。「コピーしました」は狭いタイルに収まらなければ印だけ、
- * 「コピー」はもっと狭くなってから印だけ
- */
+  /* 狭いタイルでは字を落として印だけにする */
   @container (max-width: 11rem) {
     .done-text {
       display: none;
@@ -460,7 +397,8 @@
     .badge {
       padding-inline: 0.5rem;
     }
-  } /* できた印は主の色で、線を描くように現れる */
+  }
+  /* できた印は主の色で、線を描くように現れる */
   .tick {
     color: var(--pico-primary);
     stroke-dasharray: 24;
@@ -498,10 +436,7 @@
   }
 
   /* ---- 拡大表示 ---- */
-  /*
- * ダイアログは操作の層 (面と影。縁は付けない)。後ろの幕はぼかさず、薄く暗くするだけ。
- * 中の操作は画像の上なので、一覧のタイルと同じ見た目
- */
+  /* ダイアログは面と影だけ。後ろの幕はぼかさない */
   dialog {
     --pico-modal-overlay-background-color: var(--ui-backdrop);
     --pico-modal-overlay-backdrop-filter: none;

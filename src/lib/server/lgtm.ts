@@ -1,74 +1,74 @@
-import { unlinkSync } from "node:fs";
+import { MAX_SIDE, MAX_UPLOAD_BYTES, mb } from "#lib/limits.js";
 
 import db from "./db";
-import { generateUniqueKey } from "./key";
+import { HttpError } from "./http";
+import { imagePath, removeImage, writeImage } from "./storage";
 import { webpSize } from "./webp";
 
-/** Uploads are made no larger than this on each side by the browser. */
-const MAX_SIDE = 960;
-/**
- * Per file. The largest animation stored so far is about 4MB at 500px; this
- * leaves room for a long one at full size without taking just anything.
- */
-const MAX_BYTES = 30 * 1024 * 1024;
+/** An upload the browser could not have made; the status says which way. */
+export class InvalidImageError extends HttpError {}
 
-/** An upload that is not a WebP the browser could have made. */
-export class InvalidImageError extends Error {}
+type Checked = { bytes: Uint8Array; width: number; height: number };
+
+async function check(file: File): Promise<Checked> {
+  if (file.size > MAX_UPLOAD_BYTES)
+    throw new InvalidImageError(
+      413,
+      `画像が大きすぎます (${mb(MAX_UPLOAD_BYTES)} まで)`,
+    );
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const size = webpSize(bytes);
+  if (!size) throw new InvalidImageError(415, "画像の形式が正しくありません");
+  if (size.width > MAX_SIDE || size.height > MAX_SIDE)
+    throw new InvalidImageError(
+      422,
+      `画像の縦横が大きすぎます (${MAX_SIDE}px まで)`,
+    );
+  return { bytes, ...size };
+}
 
 /**
- * Stores files the browser has already converted and stamped with LGTM, and
- * answers with their names in the order given. The server no longer decodes
- * or re-encodes anything; it checks each file is a well-formed WebP within
- * the size limits and keeps it as is. What it cannot check is that the LGTM
- * is actually on it -- an account that uploads bare images is dealt with by
- * deleting them. Every file is checked before any is written, so a batch with
- * one bad file leaves nothing behind.
+ * Keeps WebPs the browser already stamped, answering with their names in
+ * order. All are checked before any is written, and a failed write undoes the
+ * batch. Whether LGTM is really on them cannot be checked here.
  */
 export async function create(
   files: File[],
   userKey: string,
 ): Promise<string[]> {
-  const checked: { bytes: Uint8Array; width: number; height: number }[] = [];
-  for (const file of files) {
-    if (file.size > MAX_BYTES) throw new InvalidImageError("too large");
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const size = webpSize(bytes);
-    if (!size) throw new InvalidImageError("not a webp");
-    if (size.width > MAX_SIDE || size.height > MAX_SIDE)
-      throw new InvalidImageError("too many pixels");
-    checked.push({ bytes, ...size });
-  }
+  if (files.length === 0) throw new HttpError(400, "画像を選んでください");
+  const checked: Checked[] = [];
+  for (const file of files) checked.push(await check(file));
 
-  const created: string[] = [];
-  for (const { bytes, width, height } of checked) {
-    const fileName = `${await generateUniqueKey((k) => Bun.file(`images/${k}.webp`).exists())}.webp`;
-    await Bun.write(`images/${fileName}`, bytes);
-    db().run(
+  const written: string[] = [];
+  try {
+    for (const { bytes } of checked) written.push(await writeImage(bytes));
+    const insert = db().prepare(
       "INSERT INTO lImage (fileName, userKey, createdAt, width, height) VALUES (?, ?, ?, ?, ?)",
-      [fileName, userKey, Date.now(), width, height],
     );
-    created.push(fileName);
+    db().transaction(() => {
+      checked.forEach(({ width, height }, i) =>
+        insert.run(written[i], userKey, Date.now(), width, height),
+      );
+    })();
+    return written;
+  } catch (e) {
+    console.error("could not store an upload", e);
+    written.forEach(removeImage);
+    throw new HttpError(500, "画像を保存できませんでした");
   }
-  return created;
 }
 
 export function deleteFile(fileName: string, userKey: string): boolean {
-  const result = db().run(
+  const { changes } = db().run(
     "DELETE FROM lImage WHERE fileName = ? AND userKey = ?",
     [fileName, userKey],
   );
-  if (result.changes > 0) {
-    unlinkSync(`images/${fileName}`);
-  }
-  return result.changes > 0;
+  if (changes > 0) removeImage(fileName);
+  return changes > 0;
 }
 
-/**
- * Removes every image a key owns, files included, and answers with how many.
- * The unlinks happen after the rows are gone: a file left on disk with no row
- * is invisible clutter, while a row pointing at a missing file is a gallery
- * tile that 404s.
- */
+/** Rows first: a stray file is invisible, a row without its file is a 404 tile. */
 export function deleteAllImages(userKey: string): number {
   const rows = db()
     .query<{ fileName: string }, [string]>(
@@ -76,20 +76,11 @@ export function deleteAllImages(userKey: string): number {
     )
     .all(userKey);
   db().run("DELETE FROM lImage WHERE userKey = ?", [userKey]);
-  for (const { fileName } of rows) {
-    try {
-      unlinkSync(`images/${fileName}`);
-    } catch {
-      // Already gone is the outcome we wanted.
-    }
-  }
+  for (const { fileName } of rows) removeImage(fileName);
   return rows.length;
 }
 
-/**
- * Reads the size off disk for rows stored before sizes were recorded. Every
- * stored file is a WebP, so the header says it without decoding anything.
- */
+/** Fills in sizes for rows stored before they were recorded. */
 export async function backfillImageSizes(): Promise<void> {
   const rows = db()
     .query<{ fileName: string }, []>(
@@ -98,7 +89,7 @@ export async function backfillImageSizes(): Promise<void> {
     .all();
   for (const { fileName } of rows) {
     try {
-      const size = webpSize(await Bun.file(`images/${fileName}`).bytes());
+      const size = webpSize(await Bun.file(imagePath(fileName)).bytes());
       if (!size) continue;
       db().run("UPDATE lImage SET width = ?, height = ? WHERE fileName = ?", [
         size.width,
@@ -106,16 +97,14 @@ export async function backfillImageSizes(): Promise<void> {
         fileName,
       ]);
     } catch {
-      // A missing or unreadable file keeps its NULLs; the gallery falls
-      // back to a square for it, as it did for everything before.
+      // Left NULL; the gallery shows a square for it.
     }
   }
 }
 
 /**
- * Counted by position rather than by page, so the gallery can ask for "what
- * comes after the ones I have". With fixed pages, deleting a tile shifted
- * every later row up one and the next page silently skipped a picture.
+ * Paged by offset so the gallery can ask for what comes after the tiles it
+ * has; fixed pages skipped a picture whenever one was deleted.
  */
 export function get(
   offset: number,
@@ -129,22 +118,22 @@ export function get(
     width: number | null;
     height: number | null;
   };
+  const columns = "SELECT fileName, userKey, width, height FROM lImage";
+  const order = "ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?";
   const rows = find
     ? db()
         .query<Row, [string, number, number]>(
-          "SELECT fileName, userKey, width, height FROM lImage WHERE userKey = ? ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
+          `${columns} WHERE userKey = ? ${order}`,
         )
         .all(userKey ?? "", limit, offset)
     : db()
-        .query<Row, [number, number]>(
-          "SELECT fileName, userKey, width, height FROM lImage ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?",
-        )
+        .query<Row, [number, number]>(`${columns} ${order}`)
         .all(limit, offset);
 
   return rows.map((image) => ({
     name: image.fileName,
     isDeletable: image.userKey === userKey,
-    width: image.width ?? 960,
-    height: image.height ?? 960,
+    width: image.width ?? MAX_SIDE,
+    height: image.height ?? MAX_SIDE,
   }));
 }

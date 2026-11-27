@@ -12,7 +12,11 @@ export function useScratchDir(): string {
 }
 
 /** A lossless WebP header of the given size, padded to look whole. */
-export function webp(width: number, height: number, extra = 0): Uint8Array {
+export function webp(
+  width: number,
+  height: number,
+  extra = 0,
+): Uint8Array<ArrayBuffer> {
   const body = 4 + 8 + 5 + 9 + extra;
   const out = new Uint8Array(8 + body);
   const view = new DataView(out.buffer);

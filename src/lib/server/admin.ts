@@ -1,9 +1,8 @@
-import { accountExists } from "./account";
+import { accountExists, findAccount } from "./account";
 import db from "./db";
 import { deleteAllImages } from "./lgtm";
-import type { GhUser } from "./model";
 
-/** How far back the daily table reaches. */
+/** Days in the daily table. */
 const DAYS = 30;
 
 const one = <T>(sql: string) => db().query<T, []>(sql).get() as T;
@@ -15,28 +14,17 @@ const names = (value: string | undefined) =>
     .filter((name) => name !== "");
 
 /**
- * Named in the environment, and so beyond anything the running app can change.
- * Nobody can grant themselves this by signing up, and nobody can take it away
- * through the admin page either -- which is what makes it the way back in when
- * a granted admin turns out to be a mistake. Unset means nobody, which is the
- * right answer for a deployment that has not thought about it yet.
+ * Admins named in ADMIN_GH_LOGINS. The app cannot revoke them, so they are the
+ * way back in when a granted admin was a mistake.
  */
 export function isEnvAdmin(key: string | undefined): boolean {
-  if (key === undefined) return false;
-  const ghUser = db()
-    .query<GhUser, [string]>("SELECT * FROM ghUser WHERE key = ?")
-    .get(key);
+  const login = findAccount(key)?.login;
   return (
-    ghUser !== null && names(process.env.ADMIN_GH_LOGINS).includes(ghUser.login)
+    login !== undefined && names(process.env.ADMIN_GH_LOGINS).includes(login)
   );
 }
 
-/**
- * Either named in the environment or handed the role by someone who already
- * had it. The database half exists so that adding an admin does not mean
- * editing a manifest and waiting for a rollout; the environment half exists so
- * that the database half can never lock everyone out.
- */
+/** Named in the environment, or granted from the admin page. */
 export function isAdmin(key: string | undefined): boolean {
   if (key === undefined) return false;
   if (isEnvAdmin(key)) return true;
@@ -54,16 +42,11 @@ export type AdminUser = {
   login: string | null;
   images: number;
   admin: boolean;
-  /** Granted in the environment, so the page must not offer to revoke it. */
+  /** From the environment; the page must not offer to revoke it. */
   fixed: boolean;
 };
 
-/**
- * Everyone the app knows about. Images uploaded before the x.com sign-in was
- * retired can outlive the account that made them, so the list is keyed on the
- * union of who has signed in and who owns pictures -- an owner with no login
- * shows up with no name against it.
- */
+/** Signed-in accounts and image owners; owners from before GitHub have no login. */
 export function adminUsers(): AdminUser[] {
   return db()
     .query<
@@ -106,8 +89,7 @@ export function setAdmin(
   by: string,
 ): string | undefined {
   if (!accountExists(userKey)) return "そのユーザーは存在しません";
-  // Taking it from yourself is how you end up locked out of the page you would
-  // need in order to put it back.
+  // Would lock you out of the page needed to put it back.
   if (!admin && userKey === by) return "自分の権限は解除できません";
   if (!admin && isEnvAdmin(userKey)) return "環境変数で指定された管理者です";
 
@@ -123,13 +105,8 @@ export function setAdmin(
 }
 
 /**
- * Removes an account and everything about it: the GitHub identity, any admin
- * grant, and the images -- files and all.
- *
- * The images go because leaving them would leave the account behind too, as a
- * row in the list owned by an identity that no longer exists. Anyone who
- * embedded one in a pull request loses it, which is the cost of the choice and
- * the reason this asks twice.
+ * Removes an account with its admin grant and its images. The images go too,
+ * or the account would live on as their owner.
  */
 export function deleteUser(
   userKey: string,
@@ -178,8 +155,7 @@ export function lgtmAdmin(): LgtmAdmin {
     "SELECT COUNT(*) AS githubUsers FROM ghUser",
   );
 
-  // The key itself is a session credential, so it is never shown whole -- who
-  // someone is comes from the account attached to it.
+  // The key is a session credential, so only its start is shown.
   const uploaders = db()
     .query<
       {
