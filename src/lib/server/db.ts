@@ -65,6 +65,13 @@ const MIGRATIONS: ((db: DatabaseType) => void)[] = [
     db.run("ALTER TABLE lImage ADD COLUMN embedding BLOB");
     db.run("CREATE INDEX lImage_grp ON lImage(grp, createdAt)");
   },
+  (db) => {
+    // 人 by scene, and which copies of one shot belong together: the top page
+    // shows only the newest of each dupKey. Both come from the embedding.
+    db.run("ALTER TABLE lImage ADD COLUMN scene TEXT");
+    db.run("ALTER TABLE lImage ADD COLUMN dupKey INTEGER");
+    db.run("CREATE INDEX lImage_dupKey ON lImage(dupKey, createdAt)");
+  },
 ];
 
 /** Immediate, so two pods starting together cannot both run the same step. */

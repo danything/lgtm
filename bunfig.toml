@@ -7,4 +7,5 @@ ignorePatterns = [
   "deploy/*.sops.yaml",
   # scripts/centroids.ts が書く 512 次元のベクトル。1 行で置く
   "src/lib/server/groups/centroids.json",
+  "src/lib/server/groups/scene-centroids.json",
 ]

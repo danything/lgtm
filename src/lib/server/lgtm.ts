@@ -1,5 +1,12 @@
 import type { FolderFilter } from "#lib/folders.js";
-import { type GroupKey, GROUPS, type GroupSection } from "#lib/groups.js";
+import {
+  type GroupKey,
+  GROUPS,
+  type GroupSection,
+  type SceneKey,
+  SCENES,
+  type SceneSection,
+} from "#lib/groups.js";
 import { MAX_SIDE, MAX_UPLOAD_BYTES, mb } from "#lib/limits.js";
 
 import db from "./db";
@@ -116,10 +123,15 @@ export async function backfillImageSizes(): Promise<void> {
   }
 }
 
+// The top page shows one picture per shot: the newest of its dupKey.
+const NEWEST_COPY = `(dupKey IS NULL OR id = (SELECT d.id FROM lImage d
+  WHERE d.dupKey = lImage.dupKey ORDER BY d.createdAt DESC, d.id DESC LIMIT 1))`;
+
 /**
  * Paged by offset so the gallery can ask for what comes after the tiles it
  * has; fixed pages skipped a picture whenever one was deleted. `folder` only
- * narrows one owner's images (`find`); `group` narrows the top page.
+ * narrows one owner's images (`find`), who sees every copy; `top` narrows
+ * the top page.
  */
 export function get(
   offset: number,
@@ -127,7 +139,7 @@ export function get(
   find: boolean,
   userKey?: string,
   folder?: FolderFilter,
-  group?: GroupKey,
+  top: { group?: GroupKey; scene?: SceneKey } = {},
 ) {
   type Row = {
     fileName: string;
@@ -146,9 +158,16 @@ export function get(
       where.push("folderId = ?");
       params.push(folder);
     }
-  } else if (group) {
-    where.push("grp = ?");
-    params.push(group);
+  } else {
+    where.push(NEWEST_COPY);
+    if (top.group) {
+      where.push("grp = ?");
+      params.push(top.group);
+    }
+    if (top.scene) {
+      where.push("scene = ?");
+      params.push(top.scene);
+    }
   }
   const rows = db()
     .query<Row, (string | number)[]>(
@@ -173,7 +192,8 @@ export function groupSections(): GroupSection[] {
   const counts = new Map(
     db()
       .query<{ grp: string; count: number }, []>(
-        "SELECT grp, COUNT(*) AS count FROM lImage WHERE grp IS NOT NULL GROUP BY grp",
+        `SELECT grp, COUNT(*) AS count FROM lImage
+         WHERE grp IS NOT NULL AND ${NEWEST_COPY} GROUP BY grp`,
       )
       .all()
       .map((r) => [r.grp, r.count]),
@@ -187,6 +207,31 @@ export function groupSections(): GroupSection[] {
     .sort(
       (a, b) =>
         Number(a.key === "other") - Number(b.key === "other") ||
+        b.count - a.count,
+    );
+}
+
+/** 人's scenes with pictures in them, biggest first and そのほか last. */
+export function sceneSections(): SceneSection[] {
+  const counts = new Map(
+    db()
+      .query<{ scene: string; count: number }, []>(
+        `SELECT scene, COUNT(*) AS count FROM lImage
+         WHERE grp = 'person' AND scene IS NOT NULL AND ${NEWEST_COPY}
+         GROUP BY scene`,
+      )
+      .all()
+      .map((r) => [r.scene, r.count]),
+  );
+  return SCENES.map(({ key, label }) => ({
+    key,
+    label,
+    count: counts.get(key) ?? 0,
+  }))
+    .filter((s) => s.count > 0)
+    .sort(
+      (a, b) =>
+        Number(a.key === "rest") - Number(b.key === "rest") ||
         b.count - a.count,
     );
 }
