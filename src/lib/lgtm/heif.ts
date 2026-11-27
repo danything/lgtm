@@ -7,8 +7,14 @@ export const loadHeif = () => {
   instance ??= Promise.all([
     import("./vendor/heif-wasm.js"),
     import("./vendor/heif-wasm.wasm?url"),
-  ]).then(([{ default: factory }, { default: url }]) =>
-    factory({ locateFile: () => url }),
-  );
+  ])
+    .then(([{ default: factory }, { default: url }]) =>
+      factory({ locateFile: () => url }),
+    )
+    .catch((e) => {
+      // A dropped connection should not fail every later HEIC too.
+      instance = undefined;
+      throw e;
+    });
   return instance;
 };

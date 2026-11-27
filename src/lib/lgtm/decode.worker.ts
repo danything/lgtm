@@ -120,24 +120,27 @@ async function convertAnimated(id: number, bytes: Uint8Array, format: Format) {
 }
 
 /** HEIC: libheif, since only Safari decodes it natively. */
-async function convertHeif(id: number, bytes: Uint8Array) {
+async function convertHeif(id: number, file: Blob, bytes: Uint8Array) {
   const heif = await loadHeif();
   const dec = new heif.HeifDecoder(bytes);
+  let picture: { rgba: Uint8Array<ArrayBuffer>; width: number; height: number };
   try {
-    if (!dec.ok()) throw new ConvertError("corrupt", "", dec.error());
-    const width = dec.width();
-    const height = dec.height();
-    const stamper = await begin(id, width, height, 1);
-    const ctx = context2d(width, height);
-    ctx.putImageData(
-      new ImageData(new Uint8ClampedArray(dec.rgba().buffer), width, height),
-      0,
-      0,
-    );
-    await sendFrame(id, stamper.stamp(ctx.canvas), 0);
+    // libheif here reads HEVC only; anything else is left to the browser.
+    if (!dec.ok()) return convertStill(id, file, "heif");
+    picture = { rgba: dec.rgba(), width: dec.width(), height: dec.height() };
   } finally {
+    // Freed before stamping: a 48MP photo is about 200MB of RGBA.
     dec.delete();
   }
+  const { rgba, width, height } = picture;
+  const stamper = await begin(id, width, height, 1);
+  const ctx = context2d(width, height);
+  ctx.putImageData(
+    new ImageData(new Uint8ClampedArray(rgba.buffer), width, height),
+    0,
+    0,
+  );
+  await sendFrame(id, stamper.stamp(ctx.canvas), 0);
 }
 
 /** Everything else: the browser's decoder, which also applies EXIF rotation. */
@@ -164,7 +167,7 @@ async function convert({ id, file }: Job) {
   const format = sniff(bytes);
   if (format === "gif" || format === "webp-animated")
     await convertAnimated(id, bytes, format);
-  else if (format === "heif") await convertHeif(id, bytes);
+  else if (format === "heif") await convertHeif(id, file, bytes);
   else await convertStill(id, file, format);
   send({ type: "end", id });
 }
