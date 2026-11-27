@@ -1,5 +1,6 @@
 import { accountExists, findAccount } from "./account";
 import db from "./db";
+import { deleteAllFolders } from "./folders";
 import { deleteAllImages } from "./lgtm";
 
 /** Days in the daily table. */
@@ -127,6 +128,7 @@ export function deleteUser(
   db().transaction(() => {
     db().run("DELETE FROM admin WHERE userKey = ?", [userKey]);
     db().run("DELETE FROM ghUser WHERE key = ?", [userKey]);
+    deleteAllFolders(userKey);
   })();
   return { images };
 }
