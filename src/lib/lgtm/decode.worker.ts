@@ -5,6 +5,7 @@ import { MAX_SIDE } from "#lib/limits.js";
 
 import lgtmUrl from "../assets/lgtm.webp?url";
 import { ConvertError } from "./errors";
+import { loadHeif } from "./heif";
 import type { Ack, Connect, Job, ToEncoder } from "./protocol";
 import { type Format, sniff } from "./sniff";
 import { loadWasm } from "./wasm";
@@ -118,15 +119,39 @@ async function convertAnimated(id: number, bytes: Uint8Array, format: Format) {
   }
 }
 
+/** HEIC: libheif, since only Safari decodes it natively. */
+async function convertHeif(id: number, file: Blob, bytes: Uint8Array) {
+  const heif = await loadHeif();
+  const dec = new heif.HeifDecoder(bytes);
+  let picture: { rgba: Uint8Array<ArrayBuffer>; width: number; height: number };
+  try {
+    // libheif here reads HEVC only; anything else is left to the browser.
+    if (!dec.ok()) return convertStill(id, file, "heif");
+    picture = { rgba: dec.rgba(), width: dec.width(), height: dec.height() };
+  } finally {
+    // Freed before stamping: a 48MP photo is about 200MB of RGBA.
+    dec.delete();
+  }
+  const { rgba, width, height } = picture;
+  const stamper = await begin(id, width, height, 1);
+  const ctx = context2d(width, height);
+  ctx.putImageData(
+    new ImageData(new Uint8ClampedArray(rgba.buffer), width, height),
+    0,
+    0,
+  );
+  await sendFrame(id, stamper.stamp(ctx.canvas), 0);
+}
+
 /** Everything else: the browser's decoder, which also applies EXIF rotation. */
 async function convertStill(id: number, file: Blob, format: Format | null) {
   let bitmap: ImageBitmap;
   try {
     bitmap = await createImageBitmap(file);
   } catch (e) {
-    // A format we recognise failing to decode is a broken file; HEIF and
-    // AVIF only decode where the browser supports them.
-    const known = format !== null && format !== "heif" && format !== "avif";
+    // A known format failing to decode is a broken file; AVIF only decodes
+    // where the browser supports it.
+    const known = format !== null && format !== "avif";
     throw new ConvertError(known ? "corrupt" : "unsupported", "", String(e));
   }
   try {
@@ -142,6 +167,7 @@ async function convert({ id, file }: Job) {
   const format = sniff(bytes);
   if (format === "gif" || format === "webp-animated")
     await convertAnimated(id, bytes, format);
+  else if (format === "heif") await convertHeif(id, file, bytes);
   else await convertStill(id, file, format);
   send({ type: "end", id });
 }
