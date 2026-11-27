@@ -4,15 +4,15 @@
  * 部品 (modal・table) はその component で import する。card は modal と --ui-surface が
  * 前提にするので、<article> が無くても読む
  */
-@import "@anyblades/blades/variables";
-@import "@anyblades/blades/layout/document";
-@import "@anyblades/blades/content/typography";
-@import "@anyblades/blades/content/link";
-@import "@anyblades/blades/content/button";
-@import "@anyblades/blades/content/embedded-content";
-@import "@anyblades/blades/content/misc";
-@import "@anyblades/blades/components/card";
-@import "@anyblades/blades/utilities";
+@import "@sveti/blades/variables";
+@import "@sveti/blades/layout/document";
+@import "@sveti/blades/content/typography";
+@import "@sveti/blades/content/link";
+@import "@sveti/blades/content/button";
+@import "@sveti/blades/content/embedded-content";
+@import "@sveti/blades/content/misc";
+@import "@sveti/blades/components/card";
+@import "@sveti/blades/utilities";
 
 /*
  * 見た目の決まりは denpa の docs/design.md に揃える。層は地・件の面・操作の層の 3 つ。

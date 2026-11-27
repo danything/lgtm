@@ -6,7 +6,7 @@
   import { setError, setMessage } from "#lib/stores/toast.svelte.js";
 
   import type { PageProps } from "./$types";
-  import "@anyblades/blades/content/table";
+  import "@sveti/blades/content/table";
 
   let { data }: PageProps = $props();
 
