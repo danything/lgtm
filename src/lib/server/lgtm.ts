@@ -1,4 +1,5 @@
 import type { FolderFilter } from "#lib/folders.js";
+import { type GroupKey, GROUPS, type GroupSection } from "#lib/groups.js";
 import { MAX_SIDE, MAX_UPLOAD_BYTES, mb } from "#lib/limits.js";
 
 import db from "./db";
@@ -118,7 +119,7 @@ export async function backfillImageSizes(): Promise<void> {
 /**
  * Paged by offset so the gallery can ask for what comes after the tiles it
  * has; fixed pages skipped a picture whenever one was deleted. `folder` only
- * narrows one owner's images (`find`).
+ * narrows one owner's images (`find`); `group` narrows the top page.
  */
 export function get(
   offset: number,
@@ -126,6 +127,7 @@ export function get(
   find: boolean,
   userKey?: string,
   folder?: FolderFilter,
+  group?: GroupKey,
 ) {
   type Row = {
     fileName: string;
@@ -144,6 +146,9 @@ export function get(
       where.push("folderId = ?");
       params.push(folder);
     }
+  } else if (group) {
+    where.push("grp = ?");
+    params.push(group);
   }
   const rows = db()
     .query<Row, (string | number)[]>(
@@ -161,4 +166,27 @@ export function get(
     // Folders are private, so only the owner sees which one.
     folderId: image.userKey === userKey ? image.folderId : null,
   }));
+}
+
+/** The groups with pictures in them, biggest first and その他 last. */
+export function groupSections(): GroupSection[] {
+  const counts = new Map(
+    db()
+      .query<{ grp: string; count: number }, []>(
+        "SELECT grp, COUNT(*) AS count FROM lImage WHERE grp IS NOT NULL GROUP BY grp",
+      )
+      .all()
+      .map((r) => [r.grp, r.count]),
+  );
+  return GROUPS.map(({ key, label }) => ({
+    key,
+    label,
+    count: counts.get(key) ?? 0,
+  }))
+    .filter((g) => g.count > 0)
+    .sort(
+      (a, b) =>
+        Number(a.key === "other") - Number(b.key === "other") ||
+        b.count - a.count,
+    );
 }

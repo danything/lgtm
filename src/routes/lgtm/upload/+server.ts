@@ -3,6 +3,7 @@ import { json } from "@sveltejs/kit";
 import { parseFolder } from "#lib/folders.js";
 import { requireAccount } from "#lib/server/account.js";
 import { requireFolder } from "#lib/server/folders.js";
+import { groupLater } from "#lib/server/groups/index.js";
 import { readForm, route } from "#lib/server/http.js";
 import { create } from "#lib/server/lgtm.js";
 
@@ -17,5 +18,8 @@ export const POST: RequestHandler = route(async ({ request, cookies }) => {
   const folder = parseFolder(form.get("folderId")?.toString());
   const folderId = typeof folder === "number" ? folder : null;
   if (folderId !== null) requireFolder(folderId, userKey);
-  return json({ ok: true, files: await create(files, userKey, folderId) });
+  const created = await create(files, userKey, folderId);
+  // Not awaited: the tag is copied now, the group shows up a moment later.
+  void groupLater(created);
+  return json({ ok: true, files: created });
 });

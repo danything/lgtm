@@ -3,6 +3,7 @@
 
   import ErrorAlert from "#lib/components/ErrorAlert.svelte";
   import Gallery from "#lib/components/Gallery.svelte";
+  import GroupBar from "#lib/components/GroupBar.svelte";
 
   import type { PageProps } from "./$types";
 
@@ -49,8 +50,41 @@
 
 <!-- 左右の余白はヘッダーと同じ 1rem -->
 <div class="wrap">
-  <Gallery fileNameList={data.images} userKey={data.wkey} find={false} />
+  <GroupBar groups={data.groups} group={data.group} />
+  {#if data.group !== undefined}
+    {#key data.group}
+      <Gallery
+        fileNameList={data.images}
+        userKey={data.wkey}
+        find={false}
+        group={data.group === "all" ? undefined : data.group}
+      />
+    {/key}
+  {:else}
+    <!-- 中身で分けた段。上げたばかりの画像はグループが付く前なので、新着を先に置く -->
+    {@render row("all", "新着", undefined, data.images)}
+    {#each data.sections as s (s.key)}
+      {@render row(s.key, s.label, s.count, s.images)}
+    {/each}
+  {/if}
 </div>
+
+{#snippet row(
+  key: string,
+  label: string,
+  count: number | undefined,
+  images: typeof data.images,
+)}
+  <section aria-labelledby={`g-${key}`}>
+    <div class="head">
+      <h2 id={`g-${key}`}>
+        {label}{#if count !== undefined}<span class="count">{count}</span>{/if}
+      </h2>
+      <a class="more" href={`/?group=${key}`}>もっと見る</a>
+    </div>
+    <Gallery fileNameList={images} userKey={data.wkey} find={false} strip />
+  </section>
+{/snippet}
 
 <style>
   .visually-hidden {
@@ -63,5 +97,31 @@
   }
   .wrap {
     padding-inline: 1rem;
+  }
+  section {
+    padding-top: 1rem;
+  }
+  .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 1.125rem;
+  }
+  .count {
+    color: var(--ui-muted);
+    font-size: var(--ui-text-sm);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  .more {
+    font-size: var(--ui-text-sm);
+    white-space: nowrap;
   }
 </style>

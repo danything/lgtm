@@ -30,5 +30,8 @@
   "imports": {
     "#lib": "./src/lib/index.js",
     "#lib/*": "./src/lib/*"
+  },
+  "dependencies": {
+    "onnxruntime-node": "^1.31.1"
   }
 }
