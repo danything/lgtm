@@ -46,11 +46,20 @@ export async function create(
   try {
     for (const { bytes } of checked) written.push(await writeImage(bytes));
     const insert = db().prepare(
-      "INSERT INTO lImage (fileName, userKey, createdAt, width, height, folderId) VALUES (?, ?, ?, ?, ?, ?)",
+      // A folder deleted while this was uploading leaves the image unfiled.
+      "INSERT INTO lImage (fileName, userKey, createdAt, width, height, folderId) VALUES (?, ?, ?, ?, ?, (SELECT id FROM folder WHERE id = ? AND userKey = ?))",
     );
     db().transaction(() => {
       checked.forEach(({ width, height }, i) =>
-        insert.run(written[i], userKey, Date.now(), width, height, folderId),
+        insert.run(
+          written[i],
+          userKey,
+          Date.now(),
+          width,
+          height,
+          folderId,
+          userKey,
+        ),
       );
     })();
     return written;

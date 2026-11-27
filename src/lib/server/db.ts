@@ -50,7 +50,7 @@ const MIGRATIONS: ((db: DatabaseType) => void)[] = [
 			CREATE TABLE folder (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				userKey TEXT NOT NULL,
-				name TEXT NOT NULL,
+				name TEXT NOT NULL COLLATE NOCASE,
 				createdAt INTEGER NOT NULL,
 				UNIQUE (userKey, name)
 			)

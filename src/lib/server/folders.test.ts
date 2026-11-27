@@ -106,3 +106,15 @@ describe("folders", () => {
     expect(listFolders("u2")).toEqual([]);
   });
 });
+
+test("names differing only in case are the same name", () => {
+  createFolder("u1", "Work");
+  expect(status(() => createFolder("u1", "work"))).toBe(409);
+});
+
+test("an upload into a folder deleted meanwhile lands unfiled", async () => {
+  const f = createFolder("u1", "gone");
+  deleteFolder(f.id, "u1");
+  const [name] = await create([webpFile(1, 1)], "u1", f.id);
+  expect(get(0, 10, true, "u1", "none").map((i) => i.name)).toEqual([name]);
+});
