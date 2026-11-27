@@ -49,6 +49,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # As the image's own user: a root-only model file once left grouping off.
+      - name: Load the grouping model
+        run: >-
+          docker run --rm lgtm:ci -e "const ort = require('onnxruntime-node');
+          await ort.InferenceSession.create('model/vision.onnx')"
+
       - name: Start the app
         run: docker run -d --name app -p 3000:3000 lgtm:ci
 
