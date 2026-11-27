@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 
 import { parseFolder } from "#lib/folders.js";
+import { isGroup } from "#lib/groups.js";
 import { PER_PAGE } from "#lib/paging.js";
 import { get } from "#lib/server/lgtm.js";
 
@@ -18,5 +19,15 @@ export const GET: RequestHandler = ({ url, cookies }) => {
   );
   const find = url.searchParams.get("find") === "true";
   const folder = parseFolder(url.searchParams.get("folder"));
-  return json(get(offset, limit, find, cookies.get("key"), folder));
+  const group = url.searchParams.get("group");
+  return json(
+    get(
+      offset,
+      limit,
+      find,
+      cookies.get("key"),
+      folder,
+      isGroup(group) ? group : undefined,
+    ),
+  );
 };

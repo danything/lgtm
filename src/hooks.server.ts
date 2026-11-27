@@ -4,12 +4,15 @@ import type {
   ServerInit,
 } from "@sveltejs/kit/hooks";
 
+import { startGrouping } from "#lib/server/groups/index.js";
 import { backfillImageSizes } from "#lib/server/lgtm.js";
 import { parseTheme, THEME_COOKIE, themeAttribute } from "#lib/theme.js";
 
 // Before the first request, so no image is rendered without its size.
 export const init: ServerInit = async () => {
   await backfillImageSizes();
+  // In the background: the first start runs the model over every picture.
+  void startGrouping();
 };
 
 // Painted in the picked theme from the first byte (app.html has the placeholder).

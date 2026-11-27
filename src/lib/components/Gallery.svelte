@@ -14,6 +14,7 @@
   import { api } from "#lib/api.js";
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
   import { type Folder, type FolderFilter, folderParam } from "#lib/folders.js";
+  import type { GroupKey } from "#lib/groups.js";
   import { FIRST_LIMIT, PER_PAGE } from "#lib/paging.js";
   import { setError } from "#lib/stores/toast.svelte.js";
 
@@ -31,6 +32,8 @@
     folder,
     onMoved,
     empty,
+    group,
+    strip = false,
   }: {
     fileNameList: File[];
     userKey?: string;
@@ -41,6 +44,10 @@
     onMoved?: (from: number | null, to: number | null) => void;
     /** Shown once nothing is left, including after the last tile moves or goes. */
     empty?: Snippet;
+    /** Narrows the top page to one group. */
+    group?: GroupKey;
+    /** One scrolling row of what it was given, loading no more. */
+    strip?: boolean;
   } = $props();
 
   let moveDialog: MoveDialog | undefined = $state();
@@ -113,7 +120,7 @@
     let page: File[];
     try {
       page = await api<File[]>(
-        `/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}&folder=${folderParam(folder)}`,
+        `/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}&folder=${folderParam(folder)}&group=${group ?? ""}`,
       );
     } catch (e) {
       // Stops here; scrolling back to the end tries again.
@@ -141,7 +148,7 @@
     generation += 1;
     isGetting = false;
     isDone = fileNameList.length < FIRST_LIMIT;
-    if (!sentinel) return;
+    if (!sentinel || strip) return;
     // Starts 800px early; at 300px a quick scroll outran the fetch.
     const observer = new IntersectionObserver(
       (entries) => {
@@ -158,11 +165,15 @@
   {@render empty?.()}
 {/if}
 <!-- overflow は切らない (端のタイルのホバーの拡大が欠ける) -->
-<div class="tiles">
+<div class="tiles" class:strip>
   {#each items as file, i (file.name)}
     <!-- The tile cannot be a <button>: the overlay buttons inside it would nest. -->
     <!-- --i staggers the entrance, restarting every 12 for appended pages. -->
-    <div class="tile" style:--i={i % 12}>
+    <div
+      class="tile"
+      style:--i={i % 12}
+      style:aspect-ratio={strip ? `${file.width} / ${file.height}` : undefined}
+    >
       <!-- The whole picture copies, the reason anyone is here. -->
       <button
         class="pic"
@@ -258,7 +269,7 @@
     </div>
   {/each}
 </div>
-<div bind:this={sentinel}></div>
+{#if !strip}<div bind:this={sentinel}></div>{/if}
 {#if folders}
   <MoveDialog bind:this={moveDialog} {folders} onMoved={moved} />
 {/if}
@@ -310,6 +321,20 @@
     gap: 0.75rem;
     /* ヘッダーとの間もタイル同士の間と同じ幅にする */
     padding-block: 0.75rem;
+  }
+  /* トップのグループの段。横に流し、端で止まる */
+  .tiles.strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    padding-block: 0.5rem 0.75rem;
+  }
+  .strip .tile {
+    flex: 0 0 auto;
+    height: 11rem;
+    scroll-snap-align: start;
   }
   .tile {
     position: relative;

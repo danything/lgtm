@@ -18,7 +18,7 @@ export default defineConfig({
     host: true,
   },
   ssr: {
-    external: ["bun:sqlite"],
+    external: ["bun:sqlite", "onnxruntime-node"],
   },
   optimizeDeps: {
     exclude: ["bun:sqlite"],

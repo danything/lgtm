@@ -47,3 +47,8 @@ yarn-error.log*
 # Playwright (tests/wasm.spec.ts)
 /test-results/
 /playwright-report/
+
+# CLIP and the server's WebP reader for the top page's groups; see Dockerfile.
+/model/
+/src/lib/lgtm/vendor/webp-node.js
+/src/lib/lgtm/vendor/webp-node.wasm

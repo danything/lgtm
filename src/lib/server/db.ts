@@ -58,6 +58,13 @@ const MIGRATIONS: ((db: DatabaseType) => void)[] = [
     db.run("ALTER TABLE lImage ADD COLUMN folderId INTEGER");
     db.run("CREATE INDEX lImage_folderId ON lImage(folderId)");
   },
+  (db) => {
+    // The top page's group, guessed from the picture. The embedding is kept
+    // so changing a group's prompts regroups without running the model.
+    db.run("ALTER TABLE lImage ADD COLUMN grp TEXT");
+    db.run("ALTER TABLE lImage ADD COLUMN embedding BLOB");
+    db.run("CREATE INDEX lImage_grp ON lImage(grp, createdAt)");
+  },
 ];
 
 /** Immediate, so two pods starting together cannot both run the same step. */

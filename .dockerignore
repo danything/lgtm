@@ -37,6 +37,9 @@ yarn-error.log*
 /src/lib/lgtm/vendor/lgtm-wasm.wasm
 /src/lib/lgtm/vendor/heif-wasm.js
 /src/lib/lgtm/vendor/heif-wasm.wasm
+/src/lib/lgtm/vendor/webp-node.js
+/src/lib/lgtm/vendor/webp-node.wasm
+/model
 
 # Nothing below is copied into the image; excluding it keeps a docs or manifest
 # edit from busting the build cache.
