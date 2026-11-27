@@ -3,6 +3,8 @@
  * library update that builds but no longer works. Drives the workers directly
  * (signed out there is no upload button). BASE_URL defaults to localhost:3000.
  */
+import { readFileSync } from "node:fs";
+
 import { expect, type Page, test } from "@playwright/test";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
@@ -146,9 +148,10 @@ async function convert(
 const expectColour = (got: number[], want: number[]) =>
   want.forEach((c, i) => expect(Math.abs(got[i] - c)).toBeLessThan(40));
 
-test("wasm converts a PNG and a GIF to WebP", async ({ page }) => {
+test("wasm converts a PNG, a GIF and a HEIC to WebP", async ({ page }) => {
   const errors: string[] = [];
   const wasm: number[] = [];
+  const wasmUrls: string[] = [];
   const scripts: Promise<{ url: string; body: string }>[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
@@ -162,7 +165,10 @@ test("wasm converts a PNG and a GIF to WebP", async ({ page }) => {
   page.on("requestfailed", (r) => errors.push(`${r.url()} failed`));
   page.on("response", (r) => {
     const url = r.url();
-    if (url.endsWith(".wasm")) wasm.push(r.status());
+    if (url.endsWith(".wasm")) {
+      wasm.push(r.status());
+      wasmUrls.push(url);
+    }
     if (url.endsWith(".js") && r.ok())
       scripts.push(
         r.text().then(
@@ -220,6 +226,21 @@ test("wasm converts a PNG and a GIF to WebP", async ({ page }) => {
     height: 3,
     progress: 2,
   });
+
+  // A HEIC (libheif's tests/data/rainbow-451x461.heic, LGPL-3.0): decoded by
+  // the lazily loaded libheif module, which Chromium cannot do natively.
+  const heic = new Uint8Array(
+    readFileSync(new URL("./fixtures/rainbow-451x461.heic", import.meta.url)),
+  );
+  const { corner: _heicCorner, ...still } = await convert(page, workers, heic);
+  expect(still).toEqual({
+    head: "RIFF....WEBP",
+    anim: false,
+    width: 451,
+    height: 461,
+    progress: 1,
+  });
+  expect(wasmUrls.some((u) => u.includes("heif-wasm"))).toBe(true);
 
   expect(wasm.length).toBeGreaterThan(0);
   expect(wasm.every((s) => s === 200)).toBe(true);

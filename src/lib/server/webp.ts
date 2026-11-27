@@ -40,3 +40,42 @@ export function webpSize(
       return null;
   }
 }
+
+/** VP8X flag bits for the chunks stripMetadata drops. */
+const EXIF_FLAG = 0x08;
+const XMP_FLAG = 0x04;
+
+/**
+ * The same WebP without its EXIF and XMP chunks (location, camera), or null
+ * when the chunks do not add up. Photos lose their metadata here at the latest.
+ */
+export function stripMetadata(bytes: Uint8Array): Uint8Array | null {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const tag = (at: number) =>
+    String.fromCharCode(...bytes.subarray(at, at + 4));
+  const kept: Uint8Array[] = [];
+  let dropped = false;
+  for (let at = 12; at < bytes.length;) {
+    if (at + 8 > bytes.length) return null;
+    const size = view.getUint32(at + 4, true);
+    const end = at + 8 + size + (size % 2);
+    if (end > bytes.length) return null;
+    const name = tag(at);
+    if (name === "EXIF" || name === "XMP ") dropped = true;
+    else kept.push(bytes.subarray(at, end));
+    at = end;
+  }
+  if (!dropped) return bytes;
+
+  const body = kept.reduce((n, c) => n + c.length, 0);
+  const out = new Uint8Array(12 + body);
+  out.set(bytes.subarray(0, 12));
+  new DataView(out.buffer).setUint32(4, 4 + body, true);
+  let at = 12;
+  for (const chunk of kept) {
+    out.set(chunk, at);
+    at += chunk.length;
+  }
+  if (tag(12) === "VP8X") out[20] &= ~(EXIF_FLAG | XMP_FLAG);
+  return out;
+}

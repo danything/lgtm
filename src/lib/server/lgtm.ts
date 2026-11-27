@@ -3,7 +3,7 @@ import { MAX_SIDE, MAX_UPLOAD_BYTES, mb } from "#lib/limits.js";
 import db from "./db";
 import { HttpError } from "./http";
 import { imagePath, removeImage, writeImage } from "./storage";
-import { webpSize } from "./webp";
+import { stripMetadata, webpSize } from "./webp";
 
 /** An upload the browser could not have made; the status says which way. */
 export class InvalidImageError extends HttpError {}
@@ -16,9 +16,11 @@ async function check(file: File): Promise<Checked> {
       413,
       `画像が大きすぎます (${mb(MAX_UPLOAD_BYTES)} まで)`,
     );
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const size = webpSize(bytes);
-  if (!size) throw new InvalidImageError(415, "画像の形式が正しくありません");
+  const raw = new Uint8Array(await file.arrayBuffer());
+  const size = webpSize(raw);
+  const bytes = size && stripMetadata(raw);
+  if (!size || !bytes)
+    throw new InvalidImageError(415, "画像の形式が正しくありません");
   if (size.width > MAX_SIDE || size.height > MAX_SIDE)
     throw new InvalidImageError(
       422,

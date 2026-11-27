@@ -35,6 +35,8 @@ yarn-error.log*
 # would only be overwritten, and would bust the cache when rebuilt.
 /src/lib/lgtm/vendor/lgtm-wasm.js
 /src/lib/lgtm/vendor/lgtm-wasm.wasm
+/src/lib/lgtm/vendor/heif-wasm.js
+/src/lib/lgtm/vendor/heif-wasm.wasm
 
 # Nothing below is copied into the image; excluding it keeps a docs or manifest
 # edit from busting the build cache.

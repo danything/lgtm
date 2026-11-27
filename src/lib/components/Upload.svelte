@@ -74,7 +74,7 @@
 
 <input
   bind:this={inputRef}
-  accept="image/*"
+  accept="image/*,.heic,.heif"
   type="file"
   multiple
   onchange={() => {
