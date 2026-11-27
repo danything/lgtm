@@ -44,47 +44,50 @@
 <!-- 一覧だけでは何のページか伝わらないので、見出しを隠して置く -->
 <h1 class="visually-hidden">LGTM画像ジェネレーター・LGTM画像一覧</h1>
 
-{#if data.message !== undefined}
-  <div class="wrap"><ErrorAlert>{data.message}</ErrorAlert></div>
-{/if}
-
-<!-- 左右の余白はヘッダーと同じ 1rem -->
+<!-- 左右の余白。狭い画面では詰める -->
 <div class="wrap">
-  <GroupBar groups={data.groups} group={data.group} />
-  {#if data.group !== undefined}
-    {#key data.group}
+  <GroupBar
+    groups={data.groups}
+    group={data.group}
+    scenes={data.scenes}
+    scene={data.scene}
+  />
+  <!-- 帯の上は帯が塗るので、知らせは帯の下に置く -->
+  {#if data.message !== undefined}
+    <ErrorAlert>{data.message}</ErrorAlert>
+  {/if}
+  {#if data.rows.length > 0}
+    <!-- 中身で分けた段。上げたばかりの画像はグループが付く前なので、新着を先に置く -->
+    {#each data.rows as r (r.key)}
+      <section aria-labelledby={`g-${r.key}`}>
+        <div class="head">
+          <h2 id={`g-${r.key}`}>
+            {r.label}{#if r.count !== undefined}<span class="count"
+                >{r.count}</span
+              >{/if}
+          </h2>
+          <a class="more" href={r.more}>もっと見る</a>
+        </div>
+        <Gallery
+          fileNameList={r.images}
+          userKey={data.wkey}
+          find={false}
+          strip
+        />
+      </section>
+    {/each}
+  {:else}
+    {#key `${data.group}/${data.scene}`}
       <Gallery
         fileNameList={data.images}
         userKey={data.wkey}
         find={false}
         group={data.group === "all" ? undefined : data.group}
+        scene={data.scene}
       />
     {/key}
-  {:else}
-    <!-- 中身で分けた段。上げたばかりの画像はグループが付く前なので、新着を先に置く -->
-    {@render row("all", "新着", undefined, data.images)}
-    {#each data.sections as s (s.key)}
-      {@render row(s.key, s.label, s.count, s.images)}
-    {/each}
   {/if}
 </div>
-
-{#snippet row(
-  key: string,
-  label: string,
-  count: number | undefined,
-  images: typeof data.images,
-)}
-  <section aria-labelledby={`g-${key}`}>
-    <div class="head">
-      <h2 id={`g-${key}`}>
-        {label}{#if count !== undefined}<span class="count">{count}</span>{/if}
-      </h2>
-      <a class="more" href={`/?group=${key}`}>もっと見る</a>
-    </div>
-    <Gallery fileNameList={images} userKey={data.wkey} find={false} strip />
-  </section>
-{/snippet}
 
 <style>
   .visually-hidden {
@@ -95,11 +98,15 @@
     clip-path: inset(50%);
     white-space: nowrap;
   }
+  /* 帯 (GroupBar) も同じ幅だけ横にはみ出して塗る */
   .wrap {
-    padding-inline: 1rem;
+    --wrap-pad: 0.75rem;
+    padding-inline: var(--wrap-pad);
   }
-  section {
-    padding-top: 1rem;
+  @media (min-width: 640px) {
+    .wrap {
+      --wrap-pad: 1rem;
+    }
   }
   .head {
     display: flex;
@@ -112,7 +119,7 @@
     align-items: baseline;
     gap: 0.5rem;
     margin: 0;
-    font-size: 1.125rem;
+    font-size: 1rem;
   }
   .count {
     color: var(--ui-muted);
@@ -120,7 +127,11 @@
     font-weight: 400;
     font-variant-numeric: tabular-nums;
   }
+  /* 押せる高さは 44px。見出しの行の高さもこれで決まる */
   .more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
     font-size: var(--ui-text-sm);
     white-space: nowrap;
   }

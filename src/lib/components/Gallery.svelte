@@ -14,7 +14,7 @@
   import { api } from "#lib/api.js";
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
   import { type Folder, type FolderFilter, folderParam } from "#lib/folders.js";
-  import type { GroupKey } from "#lib/groups.js";
+  import type { GroupKey, SceneKey } from "#lib/groups.js";
   import { FIRST_LIMIT, PER_PAGE } from "#lib/paging.js";
   import { setError } from "#lib/stores/toast.svelte.js";
 
@@ -33,6 +33,7 @@
     onMoved,
     empty,
     group,
+    scene,
     strip = false,
   }: {
     fileNameList: File[];
@@ -46,6 +47,7 @@
     empty?: Snippet;
     /** Narrows the top page to one group. */
     group?: GroupKey;
+    scene?: SceneKey;
     /** One scrolling row of what it was given, loading no more. */
     strip?: boolean;
   } = $props();
@@ -120,7 +122,7 @@
     let page: File[];
     try {
       page = await api<File[]>(
-        `/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}&folder=${folderParam(folder)}&group=${group ?? ""}`,
+        `/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}&folder=${folderParam(folder)}&group=${group ?? ""}&scene=${scene ?? ""}`,
       );
     } catch (e) {
       // Stops here; scrolling back to the end tries again.
@@ -318,9 +320,9 @@
   .tiles {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    /* ヘッダーとの間もタイル同士の間と同じ幅にする */
-    padding-block: 0.75rem;
+    gap: 0.5rem;
+    /* 上の帯との間もタイル同士の間と同じ幅にする */
+    padding-block: 0.5rem;
   }
   /* トップのグループの段。横に流し、端で止まる */
   .tiles.strip {
@@ -329,18 +331,18 @@
     overscroll-behavior-x: contain;
     scroll-snap-type: x proximity;
     scrollbar-width: thin;
-    padding-block: 0.5rem 0.75rem;
+    padding-block: 0 0.5rem;
   }
   .strip .tile {
     flex: 0 0 auto;
-    height: 11rem;
+    height: 9.5rem;
     scroll-snap-align: start;
   }
   .tile {
     position: relative;
     flex-grow: 1;
     max-width: 32rem;
-    height: 16rem;
+    height: 14rem;
     overflow: hidden;
     border-radius: var(--ui-radius-lg);
     background: var(--ui-subtle);

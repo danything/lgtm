@@ -21,3 +21,21 @@ export const isGroup = (value: unknown): value is GroupKey =>
 
 export const groupLabel = (key: GroupKey) =>
   GROUPS.find((g) => g.key === key)!.label;
+
+/** 人, split by what is going on; most-common first. */
+export const SCENES = [
+  { key: "selfie", label: "顔のアップ" },
+  { key: "group", label: "ふたり・みんな" },
+  { key: "outfit", label: "全身・衣装" },
+  { key: "live", label: "ライブ・ステージ" },
+  { key: "drink", label: "飲み物・食べ物と" },
+  { key: "pose", label: "ポーズ" },
+  { key: "rest", label: "そのほか" },
+] as const;
+
+export type SceneKey = (typeof SCENES)[number]["key"];
+
+export type SceneSection = { key: SceneKey; label: string; count: number };
+
+export const isScene = (value: unknown): value is SceneKey =>
+  SCENES.some((s) => s.key === value);

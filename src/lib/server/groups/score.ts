@@ -1,7 +1,8 @@
-import type { GroupKey } from "#lib/groups.js";
+import type { GroupKey, SceneKey } from "#lib/groups.js";
 
 import centroids from "./centroids.json";
 import { MODEL } from "./clip";
+import sceneCentroids from "./scene-centroids.json";
 
 const CENTROIDS = Object.entries(centroids) as [GroupKey, number[]][];
 
@@ -39,4 +40,37 @@ export function meanOf(embeddings: Float32Array[]): Float32Array {
   for (const e of embeddings)
     for (let i = 0; i < sum.length; i++) sum[i] += e[i];
   return unit(sum);
+}
+
+// "rest/outdoor" and the like each keep their own prompt but share そのほか.
+const SCENE_CENTROIDS = Object.entries(sceneCentroids).map(
+  ([key, c]) => [key.split("/")[0] as SceneKey, c] as const,
+);
+
+/** Which kind of 人 picture: on stage, a selfie, with friends... */
+export function pickScene(embedding: Float32Array): SceneKey {
+  let best: SceneKey = "rest";
+  let bestScore = -Infinity;
+  for (const [key, c] of SCENE_CENTROIDS) {
+    let s = 0;
+    for (let i = 0; i < c.length; i++) s += c[i] * embedding[i];
+    if (s > bestScore) {
+      bestScore = s;
+      best = key;
+    }
+  }
+  return best;
+}
+
+/**
+ * The same shot uploaded again (or one a moment apart). On the 1,668 pictures
+ * every pair at 0.97 looked the same; below it, poses and outfits differ.
+ * Keys stay once given, so changing this needs a migration clearing dupKey.
+ */
+export const SAME_SHOT = 0.97;
+
+export function cosine(a: Float32Array, b: Float32Array): number {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+  return s;
 }
