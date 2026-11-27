@@ -29,9 +29,6 @@ async function work(): Promise<void> {
 }
 
 async function drain(): Promise<void> {
-  const update| undefined;
-
-async function work(): Promise<void> {
   const update = db().prepare(
     "UPDATE lImage SET grp = ?, embedding = ? WHERE fileName = ?",
   );
