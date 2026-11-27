@@ -474,6 +474,13 @@ tbody tr :is(td:last-child) {
     transform: rotate(360deg);
   }
 }
+/* 浮いた面が、巻き始めに面と影を得る (scroll-driven。ヘッダーとトップの帯) */
+@keyframes ui-lift {
+  to {
+    background-color: var(--ui-lift-bg, var(--ui-float));
+    box-shadow: var(--ui-shadow-pop);
+  }
+}
 /* ---- 動き (CSS だけ)。動かすのは opacity と transform だけ ---- */
 @keyframes ui-drop {
   from {
