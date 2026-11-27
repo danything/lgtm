@@ -5,6 +5,11 @@ import { MODEL } from "./clip";
 
 const CENTROIDS = Object.entries(centroids) as [GroupKey, number[]][];
 
+// Animal ears and plush toys scored as 猫 by a hair; the animals have to win
+// clearly (on the 1,668 pictures then, 猫 went from 24 to 8, nearly all real).
+const ANIMAL_HANDICAP = 0.01;
+const ANIMALS: GroupKey[] = ["cat", "dog", "animal"];
+
 export function unit(v: Float32Array): Float32Array {
   let n = 0;
   for (const x of v) n += x * x;
@@ -19,6 +24,7 @@ export function pickGroup(embedding: Float32Array): GroupKey {
   for (const [key, c] of CENTROIDS) {
     let s = 0;
     for (let i = 0; i < c.length; i++) s += c[i] * embedding[i];
+    if (ANIMALS.includes(key)) s -= ANIMAL_HANDICAP;
     if (s > bestScore) {
       bestScore = s;
       best = key;

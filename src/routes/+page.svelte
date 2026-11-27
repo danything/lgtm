@@ -57,12 +57,12 @@
         fileNameList={data.images}
         userKey={data.wkey}
         find={false}
-        group={data.group === "new" ? undefined : data.group}
+        group={data.group === "all" ? undefined : data.group}
       />
     {/key}
   {:else}
     <!-- 中身で分けた段。上げたばかりの画像はグループが付く前なので、新着を先に置く -->
-    {@render row("new", "新着", undefined, data.images)}
+    {@render row("all", "新着", undefined, data.images)}
     {#each data.sections as s (s.key)}
       {@render row(s.key, s.label, s.count, s.images)}
     {/each}

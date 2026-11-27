@@ -7,8 +7,8 @@ import type { PageServerLoad } from "./$types";
 export const load: PageServerLoad = ({ cookies, url }) => {
   const wkey = cookies.get("key");
   const param = url.searchParams.get("group");
-  const group: GroupKey | "new" | undefined =
-    param === "new" ? "new" : isGroup(param) ? param : undefined;
+  const group: GroupKey | "all" | undefined =
+    param === "all" ? "all" : isGroup(param) ? param : undefined;
   const groups = groupSections();
   const base = { message: cookies.get("message"), wkey, groups, group };
 
@@ -22,7 +22,7 @@ export const load: PageServerLoad = ({ cookies, url }) => {
         false,
         wkey,
         undefined,
-        group === "new" ? undefined : group,
+        group === "all" ? undefined : group,
       ),
       sections: [],
     };

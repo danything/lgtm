@@ -4,13 +4,13 @@
   let {
     groups,
     group,
-  }: { groups: GroupSection[]; group: GroupKey | "new" | undefined } = $props();
+  }: { groups: GroupSection[]; group: GroupKey | "all" | undefined } = $props();
 </script>
 
 <!-- フォルダの帯と同じ形。狭い画面では折り返さず横に流す -->
 <nav class="bar" aria-label="グループ">
   <a class="chip" class:on={group === undefined} href="/">グループ別</a>
-  <a class="chip" class:on={group === "new"} href="/?group=new">新着</a>
+  <a class="chip" class:on={group === "all"} href="/?group=all">すべて</a>
   {#each groups as g (g.key)}
     <a class="chip" class:on={group === g.key} href={`/?group=${g.key}`}>
       {g.label}<span class="count">{g.count}</span>
