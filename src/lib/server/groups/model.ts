@@ -57,8 +57,9 @@ function frames(dec: Decoder, count: number): Rgba[] {
         Math.floor((i * total) / Math.min(count, total)),
       ),
     );
+    const last = Math.max(...want);
     const out: Rgba[] = [];
-    for (let i = 0; i < total; i++) {
+    for (let i = 0; i <= last; i++) {
       const frame = dec.next();
       if (!frame) break;
       if (want.has(i)) out.push({ data: frame.data, width, height });

@@ -15,7 +15,21 @@ export function useEmbedder(fake: Embed): void {
 }
 
 const queue: string[] = [];
-let running: Promise<void> | undefined;
+// Cleared in the same tick the queue is found empty, so a call right after
+// cannot land in a queue nobody is working on.
+let busy = false;
+let done: Promise<void> = Promise.resolve();
+
+async function work(): Promise<void> {
+  try {
+    await drain();
+  } finally {
+    busy = false;
+  }
+}
+
+async function drain(): Promise<void> {
+  const update| undefined;
 
 async function work(): Promise<void> {
   const update = db().prepare(
@@ -45,8 +59,11 @@ async function work(): Promise<void> {
 /** Groups these one at a time, after anything already waiting. */
 export function groupLater(fileNames: string[]): Promise<void> {
   queue.push(...fileNames);
-  running ??= work().finally(() => (running = undefined));
-  return running;
+  if (!busy) {
+    busy = true;
+    done = work();
+  }
+  return done;
 }
 
 /**
