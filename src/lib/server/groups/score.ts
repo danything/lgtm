@@ -65,6 +65,7 @@ export function pickScene(embedding: Float32Array): SceneKey {
 /**
  * The same shot uploaded again (or one a moment apart). On the 1,668 pictures
  * every pair at 0.97 looked the same; below it, poses and outfits differ.
+ * Keys stay once given, so changing this needs a migration clearing dupKey.
  */
 export const SAME_SHOT = 0.97;
 

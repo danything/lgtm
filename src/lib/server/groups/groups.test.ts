@@ -237,3 +237,19 @@ describe("scenes and copies", () => {
     expect(get(0, 10, false)).toHaveLength(2);
   });
 });
+
+test("a picture whose size is not known yet is nobody's copy", async () => {
+  await groupLater([]);
+  db().run("DELETE FROM lImage");
+  useEmbedder(async () => vector("food"));
+  const names = await create([webpFile(4, 4), webpFile(4, 4)], "u1");
+  await groupLater(names);
+  expect(get(0, 10, false)).toHaveLength(1);
+  // Keyed again at a start, with one size lost.
+  db().run("UPDATE lImage SET dupKey = NULL");
+  db().run("UPDATE lImage SET width = NULL, height = NULL WHERE fileName = ?", [
+    names[0],
+  ]);
+  await startGrouping();
+  expect(get(0, 10, false)).toHaveLength(2);
+});

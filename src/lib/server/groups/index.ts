@@ -144,7 +144,8 @@ export async function startGrouping(): Promise<void> {
           {
             ...r,
             e: floats(r.embedding),
-            ratio: (r.width ?? 1) / (r.height || 1),
+            // NaN for a size not known yet: it matches nothing, as in markDuplicate.
+            ratio: r.width && r.height ? r.width / r.height : Number.NaN,
           },
         ]
       : [],
