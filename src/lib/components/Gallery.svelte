@@ -4,6 +4,7 @@
     isDeletable: boolean;
     width: number;
     height: number;
+    folderId: number | null;
   };
 </script>
 
@@ -12,11 +13,13 @@
 
   import { api } from "#lib/api.js";
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
+  import { type Folder, type FolderFilter, folderParam } from "#lib/folders.js";
   import { FIRST_LIMIT, PER_PAGE } from "#lib/paging.js";
   import { setError } from "#lib/stores/toast.svelte.js";
 
   import CopyButton from "./CopyButton.svelte";
   import DeleteButton from "./DeleteButton.svelte";
+  import MoveDialog from "./MoveDialog.svelte";
   import PreviewButton from "./PreviewButton.svelte";
   import "@sveti/blades/components/modal";
 
@@ -24,11 +27,30 @@
     fileNameList,
     userKey,
     find,
+    folders,
+    folder,
+    onMoved,
   }: {
     fileNameList: File[];
     userKey?: string;
     find: boolean;
+    /** Only on the owner's page, where images can be moved between them. */
+    folders?: Folder[];
+    folder?: FolderFilter;
+    onMoved?: (from: number | null, to: number | null) => void;
   } = $props();
+
+  let moveDialog: MoveDialog | undefined = $state();
+
+  function moved(fileName: string, from: number | null, to: number | null) {
+    // Leaves a filtered view it no longer belongs in.
+    const stays =
+      folder === undefined || (folder === "none" ? to === null : to === folder);
+    items = stays
+      ? items.map((f) => (f.name === fileName ? { ...f, folderId: to } : f))
+      : items.filter((f) => f.name !== fileName);
+    onMoved?.(from, to);
+  }
 
   // About the first screen on a desktop; the rest load lazily.
   const EAGER = 6;
@@ -88,7 +110,7 @@
     let page: File[];
     try {
       page = await api<File[]>(
-        `/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}`,
+        `/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}&folder=${folderParam(folder)}`,
       );
     } catch (e) {
       // Stops here; scrolling back to the end tries again.
@@ -192,6 +214,33 @@
       </div>
       <!-- One row; an armed delete grows leftwards from the right edge. -->
       <div class="acts">
+        {#if file.isDeletable && folders}
+          <button
+            type="button"
+            class="on-media"
+            aria-label="フォルダへ移す"
+            title="フォルダへ移す"
+            onclick={(e) => {
+              e.stopPropagation();
+              moveDialog?.open(file);
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"
+              />
+            </svg>
+          </button>
+        {/if}
         {#if file.isDeletable}
           <DeleteButton
             fileName={file.name}
@@ -204,6 +253,9 @@
   {/each}
 </div>
 <div bind:this={sentinel}></div>
+{#if folders}
+  <MoveDialog bind:this={moveDialog} {folders} onMoved={moved} />
+{/if}
 <dialog bind:this={dialog}>
   <!-- 既定の箱は 32rem で止まるので、画面まで伸ばす -->
   <div class="box">

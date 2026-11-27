@@ -1,7 +1,9 @@
 <script lang="ts">
   import { refreshAll } from "$app/navigation";
+  import { page } from "$app/state";
 
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
+  import { parseFolder } from "#lib/folders.js";
   import { setError, setMessage } from "#lib/stores/toast.svelte.js";
   import { uploadErrorMessage, uploadPictures } from "#lib/upload.js";
 
@@ -17,7 +19,16 @@
     try {
       isGenerating = true;
       progress = 0;
-      const created = await uploadPictures([...files], (p) => (progress = p));
+      // Into the folder being looked at, if any.
+      const folder =
+        page.url.pathname === "/mine"
+          ? parseFolder(page.url.searchParams.get("folder"))
+          : undefined;
+      const created = await uploadPictures(
+        [...files],
+        (p) => (progress = p),
+        typeof folder === "number" ? folder : undefined,
+      );
       // The tag is what people came for, so it goes straight to the clipboard.
       const copied =
         created.length > 0 &&
