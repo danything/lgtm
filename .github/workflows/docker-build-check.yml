@@ -3,12 +3,8 @@ name: Docker Build Check
 on:
   pull_request:
     branches: [main]
-    # Nothing under deploy/ goes into the image (.dockerignore drops it), so a
-    # PR that only touches it has nothing to build. This is also what keeps the
-    # image-tag PRs from docker-publish.yml out: they are opened with
-    # GITHUB_TOKEN, and GitHub records each pull_request workflow for them as a
-    # run that fails at once ("workflow file issue") -- the job-level if below
-    # never gets to decide anything. Filtering on paths stops the run existing.
+    # deploy/ is not in the image. This also keeps out the image-tag PRs, which
+    # GITHUB_TOKEN opens and GitHub would record as failed runs.
     paths-ignore:
       - "deploy/**"
   # main too, so a change that got past the PR check still shows up red.
@@ -18,10 +14,21 @@ on:
       - "deploy/**"
 
 jobs:
-  # Builds the image, then runs it and converts a PNG and a GIF in Chromium with
-  # the wasm it was built with (tests/wasm.spec.ts). A building image is not
-  # enough: an emsdk update merges itself once this passes, and one that still
-  # compiles can make a wasm that fails in the browser.
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    if: github.head_ref != 'bump-lgtm-image'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun i --frozen-lockfile
+      - run: bun run lint
+      - run: bun run check
+      - run: bun run test
+
+  # Converts a PNG and a GIF in Chromium with the built wasm: an emsdk update
+  # can still compile and yet make a wasm that fails in the browser.
   build:
     runs-on: ubuntu-latest
     permissions:
@@ -47,8 +54,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      # Only @playwright/test is needed here, but the lockfile pins it, so the
-      # browser installed matches it.
+      # The lockfile pins @playwright/test, so the browser matches it.
       - run: bun i --frozen-lockfile
 
       - run: bunx playwright install --with-deps chromium

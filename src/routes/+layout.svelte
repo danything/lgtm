@@ -11,18 +11,15 @@
 
   let { children, data } = $props();
 
-  // A rolling update replaces the hashed asset filenames, so a tab opened before
-  // the deploy asks for chunks the new pods no longer have. Without this a click
-  // on a link just dies; instead we hand the navigation over to the browser,
-  // which reloads the page against whichever version is live now.
+  // After a rollout the old hashed chunks are gone; hand navigation to the
+  // browser so it loads the live version.
   let staleAssets = false;
   let pending: string | undefined;
 
   beforeNavigate(({ willUnload, to }) => {
     if (willUnload || !to?.url) return;
     pending = to.url.href;
-    // `updated` flips once the version poll configured in vite.config.ts sees a
-    // new build.
+    // Set by the version poll in vite.config.ts.
     if (staleAssets || updated.current) location.href = to.url.href;
   });
 
@@ -31,11 +28,7 @@
   });
 
   if (browser) {
-    // Vite fires this when a lazily imported chunk 404s, which happens if the
-    // poll has not run yet or the request reached a pod that was already
-    // replaced. Hovering a link preloads code too, so only take over when a
-    // navigation is actually in flight -- otherwise just remember for the next
-    // click rather than reloading the page under the user.
+    // A chunk 404ed. Hovering preloads too, so only reload mid-navigation.
     addEventListener("vite:preloadError", (event) => {
       event.preventDefault();
       staleAssets = true;
@@ -44,8 +37,7 @@
   }
 </script>
 
-<!-- サイト共通の分だけ。タイトルと説明文はページごとに書く: 同じものを全ページに
-     出すと検索結果で見分けが付かず、ログインが要るページまで拾われる。 -->
+<!-- サイト共通の分だけ。タイトルと説明文はページごとに書く -->
 <svelte:head>
   <meta property="og:site_name" content="LGTM" />
   <meta property="og:type" content="website" />
@@ -59,10 +51,7 @@
 
 <nav class="cluster">
   <a class="button ghost logo" href="/">LGTM</a>
-  <!-- ラジオボタンとパネルを組にした作りではなくリンクにしてある: あれはラベルと
-	     パネルが同じ親にいる間しか動かないが、ここへ持ち上げた時点で同じ親ではない。
-	     そもそもルートにするほうが筋が良い -- 「自分」がリンクできる場所になり、
-	     再読み込みで 新着 に戻されることもなくなる。 -->
+  <!-- タブはリンク。「自分」をリンクでき、再読み込みでも戻されない -->
   <div role="tablist" class="tabs">
     <a role="tab" class="tab" class:on={page.url.pathname === "/"} href="/"
       >新着</a
@@ -77,18 +66,9 @@
     {/if}
   </div>
   {#if data.ghLogin}
-    <!-- The one thing this site is for, one click from anywhere in it. -->
     <Upload />
   {/if}
-  <!-- Dropping a file is the good way in and the one nothing announces, so it
-	     is said here, in the space the toolbar was not using. Desktop only, and
-	     not as a compromise: dragging out of Tenor is not a thing a phone can
-	     do, so there is nobody being kept from it.
-
-	     Signed out it has to say something else. The drop handler lives inside
-	     Upload, which is not on the page at all then, so a file let go over it
-	     would simply do nothing -- and an invitation that quietly fails is
-	     worse than no invitation. -->
+  <!-- ドロップは何も言わないと気づかれない。ログインしていないと受け皿が無いので文を変える -->
   <span class="muted small hint">
     {#if data.ghLogin}
       Tenor等の画像は、このページに直接ドラッグ&amp;ドロップでも追加できます
@@ -98,8 +78,7 @@
   </span>
   <div class="grow"></div>
   <ThemeToggle initial={data.theme} />
-  <!-- 管理は名前より左。右端に置くと、管理者かどうかで名前の位置が変わり、
-	     同じ画面なのに人によって並びが違って見える。 -->
+  <!-- 管理は名前より左 (右端だと人によって名前の位置が変わる) -->
   {#if data.isAdmin}
     <a class="button ghost" href="/admin">管理</a>
   {/if}
@@ -115,17 +94,7 @@
 <Toast />
 
 <style>
-  /*
- * **ヘッダーは操作の層** (denpa の docs/design.md「3 つの層」)。端から離した角の丸い帯を
- * 画像の上に浮かせ、面は `--ui-float` (92% 残した半透明。ぼかさない)。一覧はヘッダーの
- * 裏を流れて透ける。中のボタンは浮かせず太字だけ (浮いたものの上に浮かせない)。
- *
- * 部品は全部 2.5rem の高さにそろえ、帯の中の余白 (0.375rem) と合わせて帯は 3.25rem。
- * 角は入れ子でそろえる: 外 (0.875rem) = 中のボタンの角の半径に近い丸み + 余白
- *
- * `--ui-header-bottom` は帯の下端。中身はここから始め、一覧はさらにタイル同士と同じ
- * 0.75rem を空ける (帯と一覧の間が、タイルの間と同じ幅に見える)
- */
+  /* ヘッダーは操作の層。部品は 2.5rem にそろえ、帯は余白込みで 3.25rem */
   :global(:root) {
     --ui-header-top: 0.5rem;
     --ui-header-bottom: calc(var(--ui-header-top) + 3.25rem);
@@ -150,18 +119,9 @@
       box-shadow 240ms var(--ui-ease);
   }
   /*
- * **巻いたときだけ浮かせる。** 一番上では面も影も無く、地にとけた平らなヘッダー。
- * 巻き始めの 3rem で面と影が付いて、一覧の上に浮き上がる。巻いた量で決まる CSS の
- * 動き (scroll-driven animation) なので、JS で巻くのを見張らない。
- * 位置と形は変えない (面と影だけ) ので、並びは揺れない。
- *
- * **素の見た目を平らにし、浮いた姿は動きの側に持たせる。** 巻けないうち (読み込んだ
- * 直後で中身の高さが決まる前・中身が短いページ) は巻く量の物差しが無く、動きは
- * 効かない。前は素の見た目が浮いた姿だったので、そのたびに一番上でも浮いていた。
- *
- * 使えないブラウザ (Firefox はまだ既定で切ってある) と、動きを減らす設定では、
- * 今までどおりいつも浮かせる (平らなまま中身に重なると字が読みにくい)
- */
+   * 一番上では平ら、巻き始めの 3rem で面と影が付く (scroll-driven animation)。
+   * 使えないブラウザと動きを減らす設定では、いつも浮かせる
+   */
   @supports (animation-timeline: scroll()) {
     @media (prefers-reduced-motion: no-preference) {
       nav {
@@ -197,10 +157,7 @@
     letter-spacing: 0.02em;
   }
 
-  /*
- * いまいる場所は**文字の幅いっぱいの下線と主の色の太字**。行を塗らない。
- * ほかのタブも本文の色のまま (薄くしない)。乗せたときは薄い地だけ
- */
+  /* いまいる場所は下線と主の色の太字。行は塗らない */
   .tabs {
     display: flex;
     align-items: center;

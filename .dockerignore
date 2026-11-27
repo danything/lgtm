@@ -49,5 +49,6 @@ yarn-error.log*
 /compose.override.yml
 # The wasm check runs against a built image, from outside it.
 /tests
+/playwright.config.ts
 /test-results
 /playwright-report

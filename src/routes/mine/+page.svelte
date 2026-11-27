@@ -6,7 +6,7 @@
   let { data }: PageProps = $props();
 </script>
 
-<!-- ログインした本人にしか中身がないページなので、検索結果には出さない -->
+<!-- 本人にしか中身がないので、検索に出さない -->
 <svelte:head>
   <title>自分の画像｜LGTM</title>
   <meta name="robots" content="noindex" />
@@ -14,9 +14,7 @@
 
 <div class="wrap">
   {#if data.images.length === 0}
-    <!-- Somebody who has just signed in is looking at the one empty space on
-		     the page, which makes it the right place to say how to fill it. It
-		     disappears the moment they have. -->
+    <!-- The one empty space a new account sees, so say how to fill it. -->
     <div class="muted empty">
       <p class="strong">まだ画像がありません</p>
       <p class="next">

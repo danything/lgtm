@@ -1,15 +1,12 @@
 /// <reference lib="webworker" />
-/**
- * Second half of turning a picture into an LGTM image: libwebp (wasm) takes
- * the stamped frames one by one as the decoding worker sends them, and the
- * finished (animated) WebP goes back to the page, with progress on the way.
- * Encoding is the slower half, so its pace is the one worth showing.
- */
+// Encodes the stamped frames with libwebp as they arrive and hands the page
+// progress and the finished WebP. Encoding is the slower half.
+import type { FailKind } from "./errors";
 import type { Ack, Connect, FromEncoder, ToEncoder } from "./protocol";
 import type { Encoder } from "./vendor/lgtm-wasm.js";
 import { loadWasm } from "./wasm";
 
-/** What sharp was asked for before; keeps new uploads looking like old ones. */
+/** What sharp used, so new uploads look like old ones. */
 const QUALITY = 80;
 
 let port: MessagePort | undefined;
@@ -22,6 +19,9 @@ const tell = (msg: FromEncoder) =>
   msg.type === "result" && msg.ok
     ? self.postMessage(msg, [msg.webp.buffer])
     : self.postMessage(msg);
+
+const failed = (id: number, kind: FailKind, error: string) =>
+  tell({ type: "result", id, ok: false, kind, error });
 
 async function handle(msg: ToEncoder) {
   switch (msg.type) {
@@ -36,8 +36,7 @@ async function handle(msg: ToEncoder) {
     }
     case "frame": {
       const job = jobs.get(msg.id);
-      // A failed frame poisons the job, but the rest are still taken and
-      // acknowledged so the decoder is never left waiting.
+      // A failed job still acks its frames so the decoder never stalls.
       if (job && !job.error) {
         if (!job.encoder.add(new Uint8Array(msg.rgba), msg.duration))
           job.error = "encode failed";
@@ -57,45 +56,31 @@ async function handle(msg: ToEncoder) {
       jobs.delete(msg.id);
       const webp = job && !job.error ? job.encoder.finish() : null;
       job?.encoder.delete();
-      tell(
-        webp
-          ? { type: "result", id: msg.id, ok: true, webp }
-          : {
-              type: "result",
-              id: msg.id,
-              ok: false,
-              error: job?.error ?? "encode failed",
-            },
-      );
+      if (webp) tell({ type: "result", id: msg.id, ok: true, webp });
+      else failed(msg.id, "failed", job?.error ?? "encode failed");
       return;
     }
     case "fail": {
       jobs.get(msg.id)?.encoder.delete();
       jobs.delete(msg.id);
-      tell({ type: "result", id: msg.id, ok: false, error: msg.error });
+      failed(msg.id, msg.kind, msg.error);
       return;
     }
   }
 }
 
-// Messages strictly in order: "begin" waits for the wasm to load, and the
-// frames behind it must not overtake it.
+// Strictly in order: frames must not overtake the "begin" waiting on the wasm.
 let queue = Promise.resolve();
 
 self.onmessage = ({ data }: MessageEvent<Connect>) => {
   if (data.type !== "connect") return;
   port = data.port;
-  // Start fetching the wasm now rather than on the first frame.
+  // Fetch the wasm now rather than on the first frame.
   void loadWasm();
   port.onmessage = ({ data: msg }: MessageEvent<ToEncoder>) => {
     queue = queue.then(() =>
       handle(msg).catch((e) =>
-        tell({
-          type: "result",
-          id: msg.id,
-          ok: false,
-          error: e instanceof Error ? e.message : String(e),
-        }),
+        failed(msg.id, "failed", e instanceof Error ? e.message : String(e)),
       ),
     );
   };

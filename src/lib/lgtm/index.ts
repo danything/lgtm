@@ -1,13 +1,15 @@
+import { MAX_SOURCE_BYTES, MAX_UPLOAD_BYTES } from "#lib/limits.js";
+
+import { ConvertError, UnsupportedBrowserError } from "./errors";
 import type { Connect, FromEncoder, Job, Result } from "./protocol";
 
-/** The browser lacks something the conversion needs. */
-export class UnsupportedBrowserError extends Error {}
+export {
+  ConvertError,
+  convertMessage,
+  UnsupportedBrowserError,
+} from "./errors";
 
-/**
- * A one-instruction module using wasm SIMD: it validates only where SIMD is
- * supported (Chrome 91, Firefox 89, Safari 16.4 and later). The codecs are
- * built with SIMD and will not even compile without it.
- */
+/** A one-instruction wasm SIMD module; the codecs will not compile without SIMD. */
 const SIMD_PROBE = new Uint8Array([
   0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8,
   0, 65, 0, 253, 15, 253, 98, 11,
@@ -19,22 +21,20 @@ const supported = () =>
   typeof WebAssembly !== "undefined" &&
   WebAssembly.validate(SIMD_PROBE);
 
+const nameOf = (file: Blob) => (file instanceof File ? file.name : "");
+
 /**
- * Converts each picture into an LGTM WebP in the browser, in order, and
- * answers with the results ready to upload. Fails as a whole if any one file
- * cannot be converted, as the server-side conversion did. `onProgress` gets
- * how far the whole batch is, from 0 to 1.
- *
- * Two workers form a pipeline: one decodes and stamps frames, the other
- * encodes them, so a long animation takes about as long as the slower of the
- * two rather than both added up. They, and the wasm they load, exist only for
- * the length of one batch.
+ * Converts each picture into an LGTM WebP, in order, failing as a whole on the
+ * first that cannot be. `onProgress` gets 0..1 across the batch. The two
+ * workers (decode, encode) live for one batch.
  */
 export async function makeLgtm(
   files: Blob[],
   onProgress?: (fraction: number) => void,
 ): Promise<File[]> {
   if (!supported()) throw new UnsupportedBrowserError();
+  const big = files.find((f) => f.size > MAX_SOURCE_BYTES);
+  if (big) throw new ConvertError("too-large", nameOf(big));
 
   const decoder = new Worker(new URL("./decode.worker.ts", import.meta.url), {
     type: "module",
@@ -60,7 +60,8 @@ export async function makeLgtm(
     else pending.get(data.id)?.resolve(data);
   };
   const crash = (e: ErrorEvent) => {
-    for (const p of pending.values()) p.reject(new Error(e.message));
+    for (const p of pending.values())
+      p.reject(new ConvertError("failed", "", e.message));
   };
   decoder.onerror = crash;
   encoder.onerror = crash;
@@ -71,9 +72,13 @@ export async function makeLgtm(
       const res = await new Promise<Result>((resolve, reject) => {
         pending.set(id, { resolve, reject });
         decoder.postMessage({ type: "job", id, file } satisfies Job);
+      }).catch((e: ConvertError) => {
+        throw new ConvertError(e.kind, nameOf(file), e.message);
       });
       pending.delete(id);
-      if (!res.ok) throw new Error(res.error);
+      if (!res.ok) throw new ConvertError(res.kind, nameOf(file), res.error);
+      if (res.webp.length > MAX_UPLOAD_BYTES)
+        throw new ConvertError("output-too-large", nameOf(file));
       out.push(new File([res.webp], "lgtm.webp", { type: "image/webp" }));
     }
     return out;

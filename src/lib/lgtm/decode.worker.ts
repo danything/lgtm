@@ -1,25 +1,15 @@
 /// <reference lib="webworker" />
-/**
- * First half of turning a picture into an LGTM image: decode it, fit it within
- * 960px, and lay the LGTM mark over every frame. Each finished frame goes
- * straight to the encoding worker, which compresses it while this one is
- * already making the next.
- *
- * GIFs and animated WebP are decoded by giflib and libwebp (wasm); anything
- * else by the browser's own createImageBitmap, which also honours the EXIF
- * orientation of a photo. Resizing and the overlay are plain canvas drawing.
- */
+// Decodes a picture, fits it within MAX_SIDE and stamps LGTM on every frame,
+// streaming each frame to the encoder while making the next.
+import { MAX_SIDE } from "#lib/limits.js";
+
 import lgtmUrl from "../assets/lgtm.webp?url";
+import { ConvertError } from "./errors";
 import type { Ack, Connect, Job, ToEncoder } from "./protocol";
+import { type Format, sniff } from "./sniff";
 import { loadWasm } from "./wasm";
 
-/** Longest side of what gets stored. */
-const MAX_SIDE = 960;
-/**
- * Frames sent but not yet taken by the encoder. Decoding outruns encoding, and
- * without a limit a long animation would pile up in the encoder's queue at
- * about 1MB a frame.
- */
+/** Frames sent but not yet taken; about 1MB each, so a long GIF must wait. */
 const WINDOW = 4;
 
 let port: MessagePort | undefined;
@@ -58,12 +48,8 @@ class Stamper {
     const scale = Math.min(1, MAX_SIDE / srcWidth, MAX_SIDE / srcHeight);
     this.width = Math.max(1, Math.round(srcWidth * scale));
     this.height = Math.max(1, Math.round(srcHeight * scale));
-    const ctx = new OffscreenCanvas(this.width, this.height).getContext("2d", {
-      willReadFrequently: true,
-    });
-    if (!ctx) throw new Error("no 2d context");
-    ctx.imageSmoothingQuality = "high";
-    this.#ctx = ctx;
+    this.#ctx = context2d(this.width, this.height, true);
+    this.#ctx.imageSmoothingQuality = "high";
     this.#mark = mark;
   }
 
@@ -72,8 +58,7 @@ class Stamper {
     const ctx = this.#ctx;
     ctx.clearRect(0, 0, width, height);
     ctx.drawImage(source, 0, 0, width, height);
-    // The mark is scaled to fit the picture and centred, keeping its own
-    // proportions: what sharp's resize(fit: "contain") then composite did.
+    // Contained and centred, as sharp's resize(fit: "contain") did.
     const mark = this.#mark;
     const k = Math.min(width / mark.width, height / mark.height);
     const w = mark.width * k;
@@ -84,73 +69,84 @@ class Stamper {
   }
 }
 
-const isGif = (b: Uint8Array) =>
-  b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38; // "GIF8"
+function context2d(w: number, h: number, willReadFrequently = false) {
+  const ctx = new OffscreenCanvas(w, h).getContext("2d", {
+    willReadFrequently,
+  });
+  if (!ctx) throw new ConvertError("failed", "", "no 2d context");
+  return ctx;
+}
 
-/** Extended-format WebP with the animation flag set in its VP8X header. */
-const isAnimatedWebP = (b: Uint8Array) => {
-  const tag = (at: number) => String.fromCharCode(...b.subarray(at, at + 4));
-  return (
-    b.length > 21 &&
-    tag(0) === "RIFF" &&
-    tag(8) === "WEBP" &&
-    tag(12) === "VP8X" &&
-    (b[20] & 0x02) !== 0
-  );
-};
+async function begin(
+  id: number,
+  width: number,
+  height: number,
+  frames: number,
+) {
+  const stamper = new Stamper(width, height, await loadLgtm());
+  send({
+    type: "begin",
+    id,
+    width: stamper.width,
+    height: stamper.height,
+    frames,
+  });
+  return stamper;
+}
+
+/** GIF and animated WebP: giflib and libwebp, one frame at a time. */
+async function convertAnimated(id: number, bytes: Uint8Array, format: Format) {
+  const wasm = await loadWasm();
+  const dec =
+    format === "gif" ? new wasm.GifDecoder(bytes) : new wasm.WebPDecoder(bytes);
+  try {
+    if (!dec.ok()) throw new ConvertError("corrupt", "", "undecodable image");
+    const width = dec.width();
+    const height = dec.height();
+    const stamper = await begin(id, width, height, dec.frameCount());
+    const ctx = context2d(width, height);
+    for (let f = dec.next(); f; f = dec.next()) {
+      ctx.putImageData(
+        new ImageData(new Uint8ClampedArray(f.data.buffer), width, height),
+        0,
+        0,
+      );
+      await sendFrame(id, stamper.stamp(ctx.canvas), f.duration);
+    }
+  } finally {
+    dec.delete();
+  }
+}
+
+/** Everything else: the browser's decoder, which also applies EXIF rotation. */
+async function convertStill(id: number, file: Blob, format: Format | null) {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch (e) {
+    // A format we recognise failing to decode is a broken file; HEIF and
+    // AVIF only decode where the browser supports them.
+    const known = format !== null && format !== "heif" && format !== "avif";
+    throw new ConvertError(known ? "corrupt" : "unsupported", "", String(e));
+  }
+  try {
+    const stamper = await begin(id, bitmap.width, bitmap.height, 1);
+    await sendFrame(id, stamper.stamp(bitmap), 0);
+  } finally {
+    bitmap.close();
+  }
+}
 
 async function convert({ id, file }: Job) {
-  const mark = await loadLgtm();
   const bytes = new Uint8Array(await file.arrayBuffer());
-
-  if (isGif(bytes) || isAnimatedWebP(bytes)) {
-    const wasm = await loadWasm();
-    const dec = isGif(bytes)
-      ? new wasm.GifDecoder(bytes)
-      : new wasm.WebPDecoder(bytes);
-    try {
-      if (!dec.ok()) throw new Error("undecodable image");
-      const width = dec.width();
-      const height = dec.height();
-      const stamper = new Stamper(width, height, mark);
-      send({
-        type: "begin",
-        id,
-        width: stamper.width,
-        height: stamper.height,
-        frames: dec.frameCount(),
-      });
-      const ctx = new OffscreenCanvas(width, height).getContext("2d");
-      if (!ctx) throw new Error("no 2d context");
-      for (let f = dec.next(); f; f = dec.next()) {
-        ctx.putImageData(
-          new ImageData(new Uint8ClampedArray(f.data.buffer), width, height),
-          0,
-          0,
-        );
-        await sendFrame(id, stamper.stamp(ctx.canvas), f.duration);
-      }
-    } finally {
-      dec.delete();
-    }
-  } else {
-    const bitmap = await createImageBitmap(file);
-    const stamper = new Stamper(bitmap.width, bitmap.height, mark);
-    send({
-      type: "begin",
-      id,
-      width: stamper.width,
-      height: stamper.height,
-      frames: 1,
-    });
-    const rgba = stamper.stamp(bitmap);
-    bitmap.close();
-    await sendFrame(id, rgba, 0);
-  }
+  const format = sniff(bytes);
+  if (format === "gif" || format === "webp-animated")
+    await convertAnimated(id, bytes, format);
+  else await convertStill(id, file, format);
   send({ type: "end", id });
 }
 
-// Jobs one after another, in the order they came.
+// One job at a time, in order.
 let queue = Promise.resolve();
 
 self.onmessage = ({ data }: MessageEvent<Connect | Job>) => {
@@ -169,6 +165,7 @@ self.onmessage = ({ data }: MessageEvent<Connect | Job>) => {
       send({
         type: "fail",
         id: data.id,
+        kind: e instanceof ConvertError ? e.kind : "failed",
         error: e instanceof Error ? e.message : String(e),
       }),
     ),

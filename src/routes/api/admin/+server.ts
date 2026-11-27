@@ -1,39 +1,33 @@
 import { json } from "@sveltejs/kit";
 
 import { deleteUser, isAdmin, setAdmin } from "#lib/server/admin.js";
+import { HttpError, readJson, route } from "#lib/server/http.js";
 
-import type { RequestHandler } from "./$types";
+import type { RequestEvent, RequestHandler } from "./$types";
 
-// 404 rather than 403, to match the page: someone who cannot see it has no
-// reason to learn it is here.
-export const POST: RequestHandler = async ({ request, cookies }) => {
+// 404 like the page: nobody who cannot use it needs to learn it is here.
+function requireAdmin({ cookies }: RequestEvent): string {
   const key = cookies.get("key");
-  if (!isAdmin(key) || key === undefined) {
-    return json({ error: "Not found" }, { status: 404 });
-  }
+  if (key === undefined || !isAdmin(key)) throw new HttpError(404, "Not found");
+  return key;
+}
 
-  const { userKey, admin } = await request.json();
-  if (typeof userKey !== "string" || typeof admin !== "boolean") {
-    return json({ error: "userKeyとadminを指定してください" }, { status: 400 });
-  }
-
+export const POST: RequestHandler = route(async (event) => {
+  const key = requireAdmin(event);
+  const { userKey, admin } = await readJson(event.request);
+  if (typeof userKey !== "string" || typeof admin !== "boolean")
+    throw new HttpError(400, "userKeyとadminを指定してください");
   const error = setAdmin(userKey, admin, key);
-  if (error !== undefined) return json({ error }, { status: 400 });
+  if (error !== undefined) throw new HttpError(400, error);
   return json({ ok: true });
-};
+});
 
-export const DELETE: RequestHandler = async ({ request, cookies }) => {
-  const key = cookies.get("key");
-  if (!isAdmin(key) || key === undefined) {
-    return json({ error: "Not found" }, { status: 404 });
-  }
-
-  const { userKey } = await request.json();
-  if (typeof userKey !== "string") {
-    return json({ error: "userKeyを指定してください" }, { status: 400 });
-  }
-
+export const DELETE: RequestHandler = route(async (event) => {
+  const key = requireAdmin(event);
+  const { userKey } = await readJson(event.request);
+  if (typeof userKey !== "string")
+    throw new HttpError(400, "userKeyを指定してください");
   const result = deleteUser(userKey, key);
-  if ("error" in result) return json(result, { status: 400 });
+  if ("error" in result) throw new HttpError(400, result.error);
   return json({ ok: true, images: result.images });
-};
+});

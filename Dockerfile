@@ -1,18 +1,10 @@
-# The wasm the browser uses to make LGTM images: our bindings (wasm/lgtm.cpp)
-# over libwebp and giflib, with wasm SIMD on. Built here rather than committed;
-# scripts/build-wasm.sh builds the wasm-out stage to get the same two files for
-# local development.
-#
-# -msimd128 enables wasm SIMD, and -msse2/-msse4.1 make libwebp compile its
-# SSE code paths, which Emscripten turns into wasm SIMD. libwebp's CMake check
-# finds SSE4.1 under Emscripten but not SSE2, and the SSE4.1 code needs the SSE2
-# helpers, so both are switched on explicitly. Sources are pinned to exact
-# commits.
+# The browser's codecs: wasm/lgtm.cpp over libwebp and giflib, with wasm SIMD.
+# libwebp's CMake under Emscripten finds SSE4.1 but not the SSE2 it needs, so
+# both are forced on; Emscripten turns them into wasm SIMD. Sources are pinned.
 FROM emscripten/emsdk:7.0.1 AS wasm
 WORKDIR /tmp
 ENV FLAGS="-O3 -msimd128 -msse2 -msse4.1"
-# The libraries are built before wasm/ is copied in, so they stay cached while
-# lgtm.cpp changes and an edit there re-runs only the final link.
+# Libraries before wasm/ is copied, so an edit there only re-links.
 # libwebp v1.6.0.
 RUN git clone -q https://github.com/webmproject/libwebp.git libwebp \
 	&& git -C libwebp checkout -q 4fa21912338357f89e4fd51cf2368325b59e9bd9 \
@@ -33,8 +25,7 @@ RUN git clone -q https://git.code.sf.net/p/giflib/code giflib \
 		emcc -c $FLAGS -I giflib -o giflib/$f.o giflib/$f.c || exit 1; \
 	done
 COPY wasm/ /src/
-# The prepended line keeps svelte-check out of the generated code; its types
-# are src/lib/lgtm/vendor/lgtm-wasm.d.ts, written by hand to follow lgtm.cpp.
+# @ts-nocheck keeps svelte-check out; the types are the hand-written .d.ts.
 RUN mkdir /out \
 	&& em++ $FLAGS -std=c++17 -lembind \
 		-I libwebp/src -I giflib \
@@ -62,29 +53,23 @@ COPY package.json bun.lock ./
 RUN bun i --frozen-lockfile
 COPY . .
 COPY --from=wasm-out / src/lib/lgtm/vendor/
-# Declared after the source copy so it can't invalidate the dependency layers.
-# Stamps the build into version.json, which open tabs poll to spot a rollout.
+# After the source copy, so it cannot bust the dependency layers.
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
 RUN bun run build
-# The runtime stage has no shell, so the directories the PVCs mount over are
-# made here and copied across with the owner they need.
+# The runtime has no shell, so the PVC mount points are made here.
 RUN mkdir -p /out/data /out/images
 
-# Distroless Bun: no shell or package manager, only the runtime and the glibc,
-# CA certificates and tzdata it needs. Runs as 1000:1000, the uid of the slim
-# image's bun user, so the existing PVCs stay writable.
+# Distroless. 1000:1000 is the slim image's bun user, which owns the PVCs.
 FROM oven/bun:1.4.5-distroless
 WORKDIR /usr/src/app
 EXPOSE 3000
 ENV BODY_SIZE_LIMIT=100M
 USER 1000:1000
-# No node_modules: the server has no runtime dependencies left. Images are
-# converted in the browser, and everything else is bundled into build/.
+# No node_modules: everything the server needs is bundled into build/.
 COPY --from=builder --chown=1000:1000 /out/ ./
 COPY --from=builder --chown=1000:1000 /usr/src/app/package.json ./package.json
 COPY --from=builder --chown=1000:1000 /usr/src/app/build ./build
-# The entrypoint is bun itself (the base image's too); spelled out so CMD is
-# only the arguments.
+# The base image's entrypoint too; CMD is only the arguments.
 ENTRYPOINT ["/usr/local/bin/bun"]
 CMD ["./build"]

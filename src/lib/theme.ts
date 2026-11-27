@@ -1,9 +1,4 @@
-/**
- * The colour theme someone picked. "system" follows the OS and is the default;
- * the other two pin it. Kept in a cookie rather than localStorage so the
- * server can put it on <html> in the first response (hooks.server.ts) -- the
- * page never paints in the wrong theme and then flips.
- */
+/** "system" follows the OS. A cookie, so the server paints <html> in it from the start. */
 export type Theme = "system" | "light" | "dark";
 
 export const THEME_COOKIE = "theme";

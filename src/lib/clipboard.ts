@@ -1,21 +1,12 @@
-import { setMessage } from "#lib/stores/toast.svelte.js";
+import { setError, setMessage } from "#lib/stores/toast.svelte.js";
 
-/**
- * An <img> tag for one uploaded image, ready to paste into a review. A tag
- * rather than `![LGTM](...)` because Markdown has no way to give a size, and
- * width="100%" makes the picture fill the comment instead of sitting at
- * whatever size the file happens to be. GitHub keeps the width attribute.
- */
+/** A tag rather than Markdown, which cannot set width="100%". */
 export function lgtmImgTag(fileName: string): string {
   // Read at call time, when `location` exists.
   return `<img src="${window.location.origin}/images/${fileName}" alt="LGTM" width="100%">`;
 }
 
-/**
- * Whether the clipboard took it. Browsers want a recent user gesture for this,
- * and an upload finishing is not one -- Safari and Firefox can refuse a write
- * that happens after the await. Callers say something different when they do.
- */
+/** Whether it took; Safari and Firefox refuse writes long after a click. */
 export async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
@@ -25,13 +16,14 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-/** Copy, say which of the two things happened, and answer whether it took. */
+/** Copy, say which of the two happened, and answer whether it took. */
 export async function copyAndReport(
   text: string,
   copied: string,
   failed: string,
 ): Promise<boolean> {
   const ok = await copyText(text);
-  setMessage(ok ? copied : failed);
+  if (ok) setMessage(copied);
+  else setError(failed);
   return ok;
 }

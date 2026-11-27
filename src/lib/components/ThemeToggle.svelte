@@ -5,8 +5,7 @@
 
   let { initial }: { initial: Theme } = $props();
 
-  // Seeded from the cookie the server read; from here on this button owns it,
-  // so only the first value is wanted (untrack says that is the point).
+  // Only the first value: from here on this button owns it.
   let theme = $state<Theme>(untrack(() => initial));
 
   const NEXT: Record<Theme, Theme> = {
@@ -25,13 +24,11 @@
     const root = document.documentElement;
     if (next === "system") root.removeAttribute("data-theme");
     else root.setAttribute("data-theme", next);
-    // A year, for the whole site. Lax: it only decides colours.
-    // document.cookie directly: the value is one of three fixed words, so there is nothing to escape, and the Cookie Store API is not in every browser this site serves
+    // A year, Lax: it only decides colours. Three fixed words, nothing to escape.
     document.cookie = `${THEME_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
   }
 
-  // Only switches the attribute; the colours ease over by CSS transitions on
-  // the page and the header (app.css, +layout.svelte), not by script.
+  // Only the attribute; CSS transitions ease the colours over.
   const onclick = () => apply(NEXT[theme]);
 </script>
 

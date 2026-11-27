@@ -7,12 +7,9 @@ export default defineConfig({
     sveltekit({
       adapter: adapter(),
       version: {
-        // The commit the image was built from, so every rollout publishes a
-        // distinct version.json. Falls back to SvelteKit's build timestamp
-        // when built outside CI.
+        // The commit, so every rollout has its own version.json.
         name: process.env.APP_VERSION || undefined,
-        // Let already-open tabs notice a deploy on their own, rather than
-        // only when a navigation has already failed.
+        // Open tabs notice a deploy before a navigation fails.
         pollInterval: 60_000,
       },
     }),

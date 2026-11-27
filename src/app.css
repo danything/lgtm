@@ -1,43 +1,8 @@
 /*
- * 見た目は Blades の Pico(Pico CSS v2 を引き継いだもの。素の CSS で、Sass は要らない)。
- *
- * **Tailwind + daisyUI をやめた。** 出てくる部品は箱・札・ボタン・入力欄くらいで、
- * utility class を並べるより素の HTML を整えるほうが小さく、後から読んで分かる
- * (denpa・トドロク・tama・worklog・noren と同じ構成)。
- *
- * **Pico は `blades` の層 (@layer) に入っている。** 読むのは層つきの部品 (@sveti/blades/<部品>) で、
- * 部品の側で `@layer blades` に包んである。層に入らないこちらの規則は、詳細度に
- * 関係なく必ず Pico に勝つ。Pico の強い selector に合わせて同じ強さで書き直す、という
- * 張り合いが要らない。各画面の <style> も同じく層の外なので、Pico より必ず勝つ。
- *
- * **主の色は Pico の既定 (azure) のまま。** 地・面・字・影の色は下の --ui-* で決め、
- * 明暗は OS の設定に従って切り替える (denpa と同じ値)。
- *
- * **Pico は使う部品だけ読む。** 丸ごとだと 90KB あり、ほとんどはこのアプリに出てこない
- * 要素のためのもの。ここ(全画面で読む)には、どの画面にも出る要素の土台だけを置く。
- * 並びは Pico の順(変数 → layout → content → components → utilities)のまま。
- * 一部の画面にしか出ない要素の部品は、その要素を描く component の <script> で
- * import する。その画面の chunk にだけ入り、ほかの画面は落とさずに済む:
- * - components/modal: Gallery.svelte(拡大表示の <dialog>。一覧と /mine)
- * - content/table: admin/+page.svelte(<table> はここだけ)
- * card は <article> が無くてもここで読む。--ui-surface が引く --pico-card-background-color が
- * 3.1.0-alpha.2 から card の部品の側で決まるようになり、読まないと箱の地の色が消えるため。
- * modal も card を前提にしているので、ここにあれば足りる。
- * 読まないもの:
- * - layout の landmarks・section・container・grid・overflow-auto: <main> は body の
- *   直下ではなく (landmarks は body > main の余白だけ。body と main の初期化は
- *   document にある)、<section> も .container/.grid/.overflow-auto も使っていない
- * - content の code・figure: <code>/<pre>/<kbd> も <figure> も出てこない
- * - forms 全部: 入力欄はボタンから開く隠した <input type="file"> だけ
- * - components の card・modal 以外: <details> も、nav の中の ul/li も、
- *   [role=group]・[aria-busy]・[data-tooltip]・<progress> も使っていない。
- *   ナビは .cluster で並べるので、Pico の nav の両端寄せを打ち消す必要も無くなった
- * 使う要素を足すときは、対応する部品を `import "@sveti/blades/<部品>";` で
- * その要素を描く component に足す(<style> の中で @import しない。component の
- * 規則として閉じ込められ、読んだ数だけ複製される)。どの画面にも出る要素か、
- * ここで変数を引く部品なら、ここに Pico の順で足す。route の chunk の CSS はここより
- * 後に読まれ、層の中では utilities より後ろに並ぶので、utilities と同じ要素・
- * 同じ性質を決める部品はここに置く
+ * 見た目は Blades の Pico。Pico は `@layer blades` の中なので、層の外のここと各画面の
+ * 規則は詳細度に関係なく勝つ。全画面に出る要素の部品だけここで読み、一部の画面だけの
+ * 部品 (modal・table) はその component で import する。card は modal と --ui-surface が
+ * 前提にするので、<article> が無くても読む
  */
 @import "@sveti/blades/variables";
 @import "@sveti/blades/layout/document";
@@ -50,18 +15,8 @@
 @import "@sveti/blades/utilities";
 
 /*
- * **見た目の決まりは denpa の docs/design.md に揃える。**
- * 合言葉は「塗らない。囲みすぎない。浮かせすぎない。でも、ちゃんと伝わる。」
- *
- * - 層は 3 つ。**地** (ページ・画像の一覧・表の行。平らで線も影も無い)、
- *   **件の面** (管理の数字。地より一段上の面)、**操作の層** (ヘッダー・ダイアログ・
- *   通知。面と 2 段の影)。浮いたものの上に、さらに浮いたものを重ねない
- * - 強弱は塗りではなく、字の太さ・線・層で。主の色は線 (下線)・焦点の線・リンクだけ
- * - 状態の色 (赤) は戻せない操作と問題だけ。色だけに頼らず、印と言葉を添える
- * - 動きは 80ms の transition と小さな transform だけ
- *
- * 色の値は denpa と同じ段 (明るいほうは Pico の色見本、暗いほうはほぼ黒の自前の段)。
- * テーマは OS の設定に従う (Pico と同じ条件で暗いほうに切り替える)
+ * 見た目の決まりは denpa の docs/design.md に揃える。層は地・件の面・操作の層の 3 つ。
+ * 塗らず、強弱は字の太さ・線・層で。赤は戻せない操作と問題だけ
  */
 :root {
   /* フォントは束ねない(1 家族 1.3MB を全員に落とさせる価値が無い)。Windows なら
@@ -77,12 +32,7 @@
   --pico-typography-spacing-vertical: 0.75rem;
   --pico-form-element-spacing-vertical: 0.45rem;
   --pico-form-element-spacing-horizontal: 0.75rem;
-  /*
-	 * 中身の幅。本文 65ch を、BIZ UDPGothic で描いたときの実寸で固定した値。
-	 * `ch` はフォントの `0` の幅で、BIZ UDPGothic は約 0.76em、代替の sans-serif は
-	 * 約 0.56em -- ch のままだと 1.3MB の日本語サブセットが届くまで 210px ほど狭く
-	 * 描かれ、届いた瞬間に跳ねる
-	 */
+  /* 中身の幅。ch は日本語の字が届く前と後で変わるので、BIZ UDPGothic の実寸で固定 */
   --ui-width: 49.5rem;
 
   /* ---- 形。角丸・字・動きはこの段から選ぶ ---- */
@@ -104,34 +54,18 @@
   --ui-fg: var(--pico-color);
   /* 状態の色は赤だけ (戻せない操作・問題) */
   --ui-err: #d93526; /* red-500 */
-  /*
-	 * **操作の層の面** (ヘッダー・主のボタン)。メニューと同じ面を 92% 残し、下を流れる
-	 * 画像をうっすら見せる。ぼかさない (重い)。透かしを減らす設定では透かさない (下)
-	 */
+  /* 操作の層の面。92% 残して下の画像を透かす (ぼかしは重い) */
   --ui-float: color-mix(in srgb, var(--ui-pop) 92%, transparent);
   /* 指を乗せた地。地の上の 1 行の並び (タブ・字だけのボタン) */
   --ui-hover-soft: color-mix(in srgb, var(--ui-subtle) 55%, transparent);
 
-  /*
-	 * **画像の上の色。** 下にあるのは地の色ではなく任意の画像なので、テーマで変えない。
-	 * 字とアイコンは白、戻せないものの 2 回目は明るい赤。並びの裏には端から消えていく
-	 * 黒い影を敷いて、明るい画像の上でも読めるようにする
-	 */
+  /* 画像の上の色。下は任意の画像なので、テーマで変えない */
   --ui-on-media: #fff;
   --ui-on-media-hover: rgb(255 255 255 / 0.16);
   --ui-on-media-danger: #ff8a7a;
   --ui-media-shade: rgb(0 0 0 / 0.55);
 }
-/*
- * テーマごとの色。画面の側は変数だけを使う
- *
- * - `--ui-bg` 地・`--ui-surface` ダイアログ・`--ui-subtle` 淡い面 (読み込み中のタイル)
- * - `--ui-line` 細い線ほどの濃さの面・`--ui-pop` 通知とヘッダーの面
- * - `--ui-item` 件の面 (`--ui-item-shadow` は明るいほうだけ)
- * - `--ui-muted` 控えた字・`--ui-primary-text` 主の色を字にするとき
- * - `--ui-err-text` 赤を字にするとき (地の上で 4.5:1 以上になる段)
- * - `--ui-shadow-pop` 浮かぶもの・`--ui-backdrop` ダイアログの後ろの幕 (ぼかさない)
- */
+/* テーマごとの色。画面の側は変数だけを使う */
 :root {
   --ui-bg: #fff;
   --ui-surface: #fff;
@@ -153,10 +87,7 @@
   --pico-muted-border-color: var(--ui-line);
   --pico-table-border-color: transparent;
 }
-/*
- * 暗いほう。OS が暗く、明るいほうを選んでいないとき (テーマの切り替えが「OSに合わせる」)
- * と、暗いほうを選んだとき (`<html data-theme="dark">`) の両方に同じ値を置く
- */
+/* 暗いほう。OS が暗いときと、暗いほうを選んだときに同じ値を置く */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --ui-bg: #0b0c0f;
@@ -212,19 +143,10 @@ html {
   font-size: var(--pico-font-size);
   /* 元の app.html が付けていた antialiased の分 */
   -webkit-font-smoothing: antialiased;
-  /*
-	 * スクロールバーの幅を最初から空けておく。最初の 12 枚が画面に収まると
-	 * スクロールバーが無く、続きを読み込んで初めて出てきた瞬間に本文の幅が
-	 * 縮んで、タイルの並びが全部組み直されていた。画面に重ねて出るスクロール
-	 * バー(macOS・スマホ)ではもともと幅を取らないので、何も変わらない。
-	 */
+  /* 続きを読み込んでスクロールバーが出たとき、並びが組み直されないよう幅を空けておく */
   scrollbar-gutter: stable;
 }
-/*
- * ダイアログ(Gallery の拡大)を開いている間は、後ろのページを巻かない。
- * Esc・背景のクリックで閉じても :modal が外れるので、ひとりでに戻る。
- * スクロールバーの幅は上の scrollbar-gutter で空けたままなので、横にずれない。
- */
+/* ダイアログを開いている間は後ろを巻かない */
 html:has(dialog:modal) {
   overflow: hidden;
 }
@@ -305,19 +227,8 @@ h4 {
 }
 
 /*
- * ---- ボタン ----
- *
- * - 主 (クラス無し・`a.button`) … **操作の層に乗せる**。ヘッダーと同じ面と影のカプセルで、
- *   字は本文の色の太字。主の色では塗らない。押している間は少し縮める
- * - 字だけ (`.ghost`) … 平らで、地も枠も影も無い。乗せると薄い地
- * - 戻せないもの … 1 回目 (`.outline.danger`) は字だけと同じで、乗せたときだけ赤い字。
- *   確定 (`.danger`) は主と同じ層で赤い字 (赤では塗らない)
- *
- * **浮いたものの中では浮かせない** (ヘッダー・ダイアログ・表の中)。下の `:where(nav, …)`
- * が面と影を消し、中の主のボタンは太字だけになる。
- * 規則は `:where()` で詳細度を落としてあり、自前の見た目を持つボタン (画像の上の
- * ボタン・タイルそのもの) はクラス 1 つでこれに勝つ。Pico は層の中なので、Pico の
- * :hover / :focus の色はここで全部上書きされる
+ * ---- ボタン ---- 主 (クラス無し) は操作の層、`.ghost` は字だけ、`.danger` は赤い字。
+ * `:where()` で詳細度を落とし、自前の見た目のボタンがクラス 1 つで勝てるようにする
  */
 :root {
   --ui-btn-solid: var(--ui-float);
@@ -418,12 +329,7 @@ a.button {
   padding: 0;
 }
 
-/*
- * ---- 画像の上の操作 (`.on-media`) ----
- * **塗らない。** 白いアイコンに小さな影を付け、並びの裏には使う側が端から消えていく
- * 黒い影 (`--ui-media-shade`) を敷く。乗せた・キーボードで触っているときだけ、ごく薄い
- * 地を出す。戻せないものの 2 回目 (`.armed`) は明るい赤の字と下の短い赤い線
- */
+/* ---- 画像の上の操作 (`.on-media`)。塗らず、白いアイコンと裏の影で読ませる ---- */
 :where(button).on-media {
   --pico-background-color: transparent;
   --pico-box-shadow: none;
@@ -568,12 +474,7 @@ tbody tr :is(td:last-child) {
     transform: rotate(360deg);
   }
 }
-/*
- * ---- 動き (CSS だけ。JS では動かさない) ----
- * 状態が変わったとき (乗せた・押した) は 80ms (`--ui-duration`)。現れるもの (ヘッダー・
- * タイル・通知・ダイアログ) だけ、少し長めにふわっと出す (`--ui-ease-out`)。
- * 動かすのは opacity と transform だけ (レイアウトを組み直さないので軽い)
- */
+/* ---- 動き (CSS だけ)。動かすのは opacity と transform だけ ---- */
 @keyframes ui-drop {
   from {
     opacity: 0;

@@ -2,17 +2,14 @@
   import { refreshAll } from "$app/navigation";
 
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
-  import { makeLgtm, UnsupportedBrowserError } from "#lib/lgtm/index.js";
-  import { setMessage } from "#lib/stores/toast.svelte.js";
+  import { setError, setMessage } from "#lib/stores/toast.svelte.js";
+  import { uploadErrorMessage, uploadPictures } from "#lib/upload.js";
 
   let isGenerating = $state(false);
-  // 0..1 across the whole batch. A long animation takes seconds, and a bare
-  // "生成中" gives no sign it is getting anywhere.
+  // 0..1 across the batch; a long animation takes seconds.
   let progress = $state(0);
   let inputRef: HTMLInputElement | undefined = $state();
-  // dragenter and dragleave fire again for every element the pointer crosses, so
-  // a plain boolean flickers as the file moves over the page. Counting entries
-  // against leaves is what actually answers "is a file still over the window".
+  // dragenter/leave fire per element crossed, so count rather than toggle.
   let depth = $state(0);
   const dragging = $derived(depth > 0);
 
@@ -20,19 +17,8 @@
     try {
       isGenerating = true;
       progress = 0;
-      // Converted and stamped here, in the browser; the server only checks
-      // and stores what it is sent.
-      const formData = new FormData();
-      for (const file of await makeLgtm([...files], (p) => (progress = p)))
-        formData.append("files", file);
-      const res = await fetch("/lgtm/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("upload failed");
-      const { files: created }: { files: string[] } = await res.json();
-      // Straight onto the clipboard: what you came here for is the tag,
-      // and the alternative is finding the new tile and clicking it.
+      const created = await uploadPictures([...files], (p) => (progress = p));
+      // The tag is what people came for, so it goes straight to the clipboard.
       const copied =
         created.length > 0 &&
         (await copyText(created.map(lgtmImgTag).join("\n")));
@@ -44,11 +30,7 @@
           : "画像生成完了",
       );
     } catch (e) {
-      setMessage(
-        e instanceof UnsupportedBrowserError
-          ? "このブラウザでは画像を変換できません。最新のブラウザでお試しください"
-          : "画像生成失敗",
-      );
+      setError(uploadErrorMessage(e));
     } finally {
       await refreshAll();
       if (inputRef) inputRef.value = "";
@@ -66,7 +48,7 @@
     const leave = (event: DragEvent) => {
       if (hasFiles(event)) depth -= 1;
     };
-    // Without this the browser navigates to the file instead of handing it over.
+    // Otherwise the browser opens the file instead.
     const over = (event: DragEvent) => {
       if (hasFiles(event)) event.preventDefault();
     };
@@ -123,14 +105,8 @@
 </button>
 
 {#if dragging}
-  <!--
-		ウィンドウ全体が受け皿で、それが分かるのは要る瞬間だけ -- なのでその時だけ
-		言い、残りの時間は何も言わない。pointer-events: none は、案内しているその
-		ドロップ自体をこの幕が飲み込まないようにするため。
-	-->
+  <!-- 受け皿はウィンドウ全体。pointer-events: none でドロップを飲み込まない -->
   <div class="veil">
-    <!-- 枠はウィンドウそのもの。受け皿がウィンドウだからで、真ん中に箱を置くと
-		     逆のことを言ってしまう。 -->
     <div class="frame">ここにドロップ</div>
   </div>
 {/if}
@@ -144,10 +120,7 @@
     width: 1.125rem;
     height: 1.125rem;
   }
-  /*
- * 狭い画面ではヘッダーに収まらないので、＋の印だけにする。名前は読み上げに残す
- * (見えないだけで、ボタンの名前は「画像を追加」のまま)
- */
+  /* 狭い画面では＋の印だけ。名前は読み上げに残す */
   @media (max-width: 479px) {
     .label {
       position: absolute;
@@ -158,8 +131,7 @@
       white-space: nowrap;
     }
   }
-  /* 数字が変わるたびにボタンの幅が変わると、ヘッダーの並びまで揺れる。
-   等幅の数字で、いちばん長い "100%" の幅を最初から取っておく */
+  /* 数字でボタンの幅が揺れないよう、等幅で "100%" の幅を取っておく */
   .pct {
     min-width: 4ch;
     font-variant-numeric: tabular-nums;
@@ -174,7 +146,6 @@
     padding: 0.75rem;
     animation: ui-fade 160ms var(--ui-ease) both;
   }
-  /* 受け皿はウィンドウそのもの。線は主の色 (線は主の色の役目)、字は本文の色 */
   .frame {
     display: grid;
     place-items: center;
@@ -185,7 +156,7 @@
     color: var(--ui-fg);
     font-size: 1.5rem;
     font-weight: 700;
-    /* 枠は少し小さいところから広がり、その後は落としてよいことをゆっくり脈打って示す */
+    /* 広がって出て、落としてよいことを脈打って示す */
     animation:
       ui-pop 280ms var(--ui-ease-out) both,
       frame-breathe 1.4s ease-in-out 280ms infinite;

@@ -1,7 +1,10 @@
 <script lang="ts">
   import { toastStore } from "#lib/stores/toast.svelte.js";
 
-  let messageList = $state<{ id: number; text: string }[]>([]);
+  /** How long a message shows, in ms; errors get time to be read. */
+  const SHOW = { info: 1500, error: 6000 };
+
+  let messageList = $state<{ id: number; text: string; error: boolean }[]>([]);
   let isShow = $state(true);
   let showTimeout: ReturnType<typeof setTimeout> | undefined;
   let messageTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -9,26 +12,22 @@
 
   $effect(() => {
     const message = toastStore.message;
-    if (message) {
-      isShow = true;
-      nextId += 1;
-      messageList = [{ id: nextId, text: message }, ...messageList];
-      toastStore.message = undefined;
-      if (showTimeout) clearTimeout(showTimeout);
-      if (messageTimeout) clearTimeout(messageTimeout);
-      showTimeout = setTimeout(() => {
-        isShow = false;
-      }, 1500);
-      messageTimeout = setTimeout(() => {
-        messageList = [];
-      }, 2000);
-    }
+    if (!message) return;
+    toastStore.message = undefined;
+    isShow = true;
+    nextId += 1;
+    messageList = [{ id: nextId, ...message }, ...messageList];
+    const show = messageList.some((m) => m.error) ? SHOW.error : SHOW.info;
+    clearTimeout(showTimeout);
+    clearTimeout(messageTimeout);
+    showTimeout = setTimeout(() => (isShow = false), show);
+    messageTimeout = setTimeout(() => (messageList = []), show + 500);
   });
 </script>
 
 <div class="toast" class:hide={!isShow} role="status" aria-live="polite">
   {#each messageList as mes (mes.id)}
-    <div class="msg">{mes.text}</div>
+    <div class="msg" class:error={mes.error}>{mes.text}</div>
   {/each}
 </div>
 
@@ -67,5 +66,21 @@
     font-weight: 700;
     /* 下からふわっと浮かんで出る */
     animation: ui-rise 320ms var(--ui-ease-out) both;
+  }
+  /* 失敗は赤い印で分ける (字の色は変えない)。長い文は折り返す */
+  .msg.error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: min(36rem, 100%);
+    border-radius: var(--ui-radius-lg);
+  }
+  .msg.error::before {
+    flex-shrink: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--ui-err);
+    content: "";
   }
 </style>
