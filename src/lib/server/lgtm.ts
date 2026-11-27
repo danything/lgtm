@@ -1,3 +1,4 @@
+import type { FolderFilter } from "#lib/folders.js";
 import { MAX_SIDE, MAX_UPLOAD_BYTES, mb } from "#lib/limits.js";
 
 import db from "./db";
@@ -35,6 +36,7 @@ async function check(file: File): Promise<Checked> {
 export async function create(
   files: File[],
   userKey: string,
+  folderId: number | null = null,
 ): Promise<string[]> {
   if (files.length === 0) throw new HttpError(400, "画像を選んでください");
   const checked: Checked[] = [];
@@ -44,11 +46,20 @@ export async function create(
   try {
     for (const { bytes } of checked) written.push(await writeImage(bytes));
     const insert = db().prepare(
-      "INSERT INTO lImage (fileName, userKey, createdAt, width, height) VALUES (?, ?, ?, ?, ?)",
+      // A folder deleted while this was uploading leaves the image unfiled.
+      "INSERT INTO lImage (fileName, userKey, createdAt, width, height, folderId) VALUES (?, ?, ?, ?, ?, (SELECT id FROM folder WHERE id = ? AND userKey = ?))",
     );
     db().transaction(() => {
       checked.forEach(({ width, height }, i) =>
-        insert.run(written[i], userKey, Date.now(), width, height),
+        insert.run(
+          written[i],
+          userKey,
+          Date.now(),
+          width,
+          height,
+          folderId,
+          userKey,
+        ),
       );
     })();
     return written;
@@ -104,36 +115,48 @@ export async function backfillImageSizes(): Promise<void> {
 
 /**
  * Paged by offset so the gallery can ask for what comes after the tiles it
- * has; fixed pages skipped a picture whenever one was deleted.
+ * has; fixed pages skipped a picture whenever one was deleted. `folder` only
+ * narrows one owner's images (`find`).
  */
 export function get(
   offset: number,
   limit: number,
   find: boolean,
   userKey?: string,
+  folder?: FolderFilter,
 ) {
   type Row = {
     fileName: string;
     userKey: string;
     width: number | null;
     height: number | null;
+    folderId: number | null;
   };
-  const columns = "SELECT fileName, userKey, width, height FROM lImage";
-  const order = "ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?";
-  const rows = find
-    ? db()
-        .query<Row, [string, number, number]>(
-          `${columns} WHERE userKey = ? ${order}`,
-        )
-        .all(userKey ?? "", limit, offset)
-    : db()
-        .query<Row, [number, number]>(`${columns} ${order}`)
-        .all(limit, offset);
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+  if (find) {
+    where.push("userKey = ?");
+    params.push(userKey ?? "");
+    if (folder === "none") where.push("folderId IS NULL");
+    else if (folder !== undefined) {
+      where.push("folderId = ?");
+      params.push(folder);
+    }
+  }
+  const rows = db()
+    .query<Row, (string | number)[]>(
+      `SELECT fileName, userKey, width, height, folderId FROM lImage
+			 ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+			 ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?`,
+    )
+    .all(...params, limit, offset);
 
   return rows.map((image) => ({
     name: image.fileName,
     isDeletable: image.userKey === userKey,
     width: image.width ?? MAX_SIDE,
     height: image.height ?? MAX_SIDE,
+    // Folders are private, so only the owner sees which one.
+    folderId: image.userKey === userKey ? image.folderId : null,
   }));
 }

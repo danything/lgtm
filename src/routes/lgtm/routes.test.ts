@@ -5,7 +5,13 @@ import db from "#lib/server/db.js";
 import { useScratchDir, webpFile } from "#lib/server/testing.js";
 
 import { POST as remove } from "./delete/+server";
+import { GET as folders, POST as newFolder } from "./folders/+server";
+import {
+  DELETE as removeFolder,
+  PATCH as rename,
+} from "./folders/[id]/+server";
 import { GET as list } from "./images/+server";
+import { POST as move } from "./move/+server";
 import { POST as upload } from "./upload/+server";
 
 type Handler = (event: never) => Response | Promise<Response>;
@@ -13,7 +19,13 @@ type Handler = (event: never) => Response | Promise<Response>;
 /** Calls a route handler with just the parts of the event it reads. */
 function call(
   handler: Handler,
-  init: { key?: string; body?: BodyInit; json?: unknown; url?: string } = {},
+  init: {
+    key?: string;
+    body?: BodyInit;
+    json?: unknown;
+    url?: string;
+    params?: Record<string, string>;
+  } = {},
 ) {
   const url = new URL(init.url ?? "http://l.localhost/");
   const request = new Request(url, {
@@ -23,7 +35,7 @@ function call(
   const cookies = {
     get: (name: string) => (name === "key" ? init.key : undefined),
   };
-  return handler({ request, cookies, url } as never);
+  return handler({ request, cookies, url, params: init.params ?? {} } as never);
 }
 
 const form = (...files: File[]) => {
@@ -39,6 +51,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   db().run("DELETE FROM lImage");
+  db().run("DELETE FROM folder");
   for (const f of readdirSync("images")) unlinkSync(`images/${f}`);
   db().run("DELETE FROM ghUser");
   db().run(
@@ -129,14 +142,75 @@ describe("errors", () => {
   });
 
   test("a failed write leaves nothing behind and answers 500", async () => {
-    db().run("DROP TABLE lImage");
+    db().run("ALTER TABLE lImage RENAME TO lImageAway");
     try {
       const res = await call(upload, { key: "u1", body: form(webpFile(1, 1)) });
       expect(await status(res)).toBe(500);
       expect(readdirSync("images")).toEqual([]);
     } finally {
-      db().run("PRAGMA user_version = 0");
-      (await import("#lib/server/db.js")).migrate(db());
+      db().run("ALTER TABLE lImageAway RENAME TO lImage");
     }
+  });
+});
+
+describe("folders", () => {
+  test("create, upload into, move out of, rename and delete", async () => {
+    const made = await call(newFolder, { key: "u1", json: { name: "仕事" } });
+    expect(made.status).toBe(201);
+    const { id } = await made.json();
+    const data = form(webpFile(2, 2));
+    data.append("folderId", String(id));
+    const [name] = (
+      await (await call(upload, { key: "u1", body: data })).json()
+    ).files;
+    expect(await (await call(folders, { key: "u1" })).json()).toEqual([
+      { id, name: "仕事", images: 1 },
+    ]);
+    const inFolder = await call(list, {
+      key: "u1",
+      url: `http://l.localhost/lgtm/images?find=true&folder=${id}`,
+    });
+    expect(
+      (await inFolder.json()).map((i: { name: string }) => i.name),
+    ).toEqual([name]);
+    const out = await call(move, {
+      key: "u1",
+      json: { fileNames: [name], folderId: null },
+    });
+    expect(out.status).toBe(200);
+    const params = { id: String(id) };
+    expect(
+      (await call(rename, { key: "u1", params, json: { name: "趣味" } }))
+        .status,
+    ).toBe(200);
+    expect((await call(removeFolder, { key: "u1", params })).status).toBe(200);
+  });
+
+  test("errors", async () => {
+    expect((await call(folders)).status).toBe(401);
+    expect(
+      (await call(newFolder, { key: "u1", json: { name: "" } })).status,
+    ).toBe(400);
+    const theirs = await (
+      await call(newFolder, { key: "u2", json: { name: "x" } })
+    ).json();
+    const data = form(webpFile(2, 2));
+    data.append("folderId", String(theirs.id));
+    expect((await call(upload, { key: "u1", body: data })).status).toBe(404);
+    expect(
+      (await call(removeFolder, { key: "u1", params: { id: "abc" } })).status,
+    ).toBe(404);
+    expect(
+      (await call(move, { key: "u1", json: { fileNames: "x", folderId: 1 } }))
+        .status,
+    ).toBe(400);
+    expect(
+      (
+        await call(move, {
+          key: "u1",
+          json: { fileNames: ["nope"], folderId: null },
+        })
+      ).status,
+    ).toBe(403);
   });
 });

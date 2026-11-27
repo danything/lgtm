@@ -1,5 +1,6 @@
 import { json } from "@sveltejs/kit";
 
+import { parseFolder } from "#lib/folders.js";
 import { PER_PAGE } from "#lib/paging.js";
 import { get } from "#lib/server/lgtm.js";
 
@@ -16,5 +17,6 @@ export const GET: RequestHandler = ({ url, cookies }) => {
     Math.max(1, int(url.searchParams.get("limit"), PER_PAGE)),
   );
   const find = url.searchParams.get("find") === "true";
-  return json(get(offset, limit, find, cookies.get("key")));
+  const folder = parseFolder(url.searchParams.get("folder"));
+  return json(get(offset, limit, find, cookies.get("key"), folder));
 };

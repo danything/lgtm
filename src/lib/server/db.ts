@@ -44,6 +44,20 @@ const MIGRATIONS: ((db: DatabaseType) => void)[] = [
 			)
 		`);
   },
+  (db) => {
+    // Flat, one per image, owned by one account. Deleting one unfiles its images.
+    db.run(`
+			CREATE TABLE folder (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				userKey TEXT NOT NULL,
+				name TEXT NOT NULL COLLATE NOCASE,
+				createdAt INTEGER NOT NULL,
+				UNIQUE (userKey, name)
+			)
+		`);
+    db.run("ALTER TABLE lImage ADD COLUMN folderId INTEGER");
+    db.run("CREATE INDEX lImage_folderId ON lImage(folderId)");
+  },
 ];
 
 /** Immediate, so two pods starting together cannot both run the same step. */

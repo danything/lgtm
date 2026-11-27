@@ -10,8 +10,10 @@ import {
 export async function uploadPictures(
   files: File[],
   onProgress: (fraction: number) => void,
+  folderId?: number,
 ): Promise<string[]> {
   const body = new FormData();
+  if (folderId !== undefined) body.append("folderId", String(folderId));
   for (const file of await makeLgtm(files, onProgress))
     body.append("files", file);
   const { files: created } = await api<{ files: string[] }>("/lgtm/upload", {
