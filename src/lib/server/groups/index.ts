@@ -21,10 +21,10 @@ let busy = false;
 let done: Promise<void> = Promise.resolve();
 
 async function work(): Promise<void> {
-  const update = db().prepare(
-    "UPDATE lImage SET grp = ?, embedding = ? WHERE fileName = ?",
-  );
   try {
+    const update = db().prepare(
+      "UPDATE lImage SET grp = ?, embedding = ? WHERE fileName = ?",
+    );
     for (let name = queue.shift(); name; name = queue.shift()) {
       try {
         const e = await embed(await Bun.file(imagePath(name)).bytes());
@@ -44,6 +44,9 @@ async function work(): Promise<void> {
         console.error(`could not group ${name}`, e);
       }
     }
+  } catch (e) {
+    // Nobody awaits this to catch it.
+    console.error("grouping stopped", e);
   } finally {
     busy = false;
   }
