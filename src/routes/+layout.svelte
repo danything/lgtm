@@ -96,7 +96,7 @@
 <style>
   /* ヘッダーは操作の層。部品は 2.5rem にそろえ、帯は余白込みで 3.25rem */
   :global(:root) {
-    --ui-header-top: 0.5rem;
+    --ui-header-top: 0.25rem;
     --ui-header-bottom: calc(var(--ui-header-top) + 3.25rem);
     /* 浮いた面の形。トップの絞り込みの帯 (GroupBar) も同じ面にする */
     --ui-header-inset: 0.5rem;
