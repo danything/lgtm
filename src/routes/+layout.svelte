@@ -51,7 +51,21 @@
 </svelte:head>
 
 <nav class="cluster">
-  <a class="button ghost logo" href="/">LGTM</a>
+  <a class="button ghost logo" href="/">
+    <!-- いちばん狭い画面では字の代わりに favicon と同じ印 -->
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="7" fill="#10b981" />
+      <path
+        d="M8.5 16.5 13.5 21.5 23.5 10.5"
+        fill="none"
+        stroke="#fff"
+        stroke-width="4.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <span class="word">LGTM</span>
+  </a>
   <!-- タブはリンク。「自分」をリンクでき、再読み込みでも戻されない -->
   <div role="tablist" class="tabs">
     <a role="tab" class="tab" class:on={page.url.pathname === "/"} href="/"
@@ -82,7 +96,14 @@
   <ThemeToggle initial={data.theme} />
   <!-- 管理は名前より左 (右端だと人によって名前の位置が変わる) -->
   {#if data.isAdmin}
-    <a class="button ghost" href="/admin">管理</a>
+    <a class="button ghost admin" href="/admin">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6L12 3Z"
+        />
+      </svg>
+      <span class="label">管理</span>
+    </a>
   {/if}
   {#if data.ghLogin}
     <span class="muted small who">{data.ghLogin}</span>
@@ -150,10 +171,114 @@
   main {
     padding-top: var(--ui-header-bottom);
   }
+  /*
+   * 部品は縮めない (縮むとアイコンが潰れ、ログインが右へはみ出す)。
+   * 縮むのは案内・すき間・検索欄・名前だけ
+   */
+  nav > :global(*) {
+    flex-shrink: 0;
+  }
+  /*
+   * 押せる高さは 44px。見た目は 2.5rem のまま、帯の余白へ上下 2px ずつ広げる
+   * (タブの ::after は下線なので、広げるのは ::before)
+   */
+  nav :global(:is(a, button)) {
+    position: relative;
+  }
+  nav :global(:is(a, button))::before {
+    position: absolute;
+    inset: -2px 0;
+    content: "";
+  }
+  /* ボタンは枠線の内側が基準なので、その分も外へ */
+  nav :global(:is(a.button, button))::before {
+    inset-block: calc(-2px - var(--pico-border-width));
+  }
   nav a.button.logo {
     padding-inline: 0.75rem;
     font-size: 1.125rem;
     letter-spacing: 0.02em;
+  }
+  .mark,
+  .admin svg {
+    display: none;
+  }
+  .mark {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  .admin svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linejoin: round;
+    stroke-width: 2;
+  }
+
+  /*
+   * 狭い画面 (ログインと画像を追加が字を畳むのと同じ 560px 未満)。
+   * 管理は盾の印の円、ロゴとタブの左右とすき間を詰める
+   */
+  @media (max-width: 559.98px) {
+    nav {
+      gap: 0.125rem;
+    }
+    nav a.button.logo {
+      padding-inline: 0.5rem;
+    }
+    .tabs .tab {
+      padding-inline: 0.625rem;
+    }
+    .tabs .tab.on::after {
+      inset-inline: 0.625rem;
+    }
+    .admin {
+      width: var(--ui-btn-h);
+      padding: 0;
+    }
+    .admin svg {
+      display: block;
+    }
+    /* 字は見せずに読み上げに残す */
+    .admin .label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+  /* 375px 未満はすき間を無くし、タブをもう一段詰める */
+  @media (max-width: 374.98px) {
+    nav {
+      gap: 0;
+    }
+    .tabs .tab {
+      padding-inline: 0.5rem;
+    }
+    .tabs .tab.on::after {
+      inset-inline: 0.5rem;
+    }
+  }
+  /* 360px 未満はロゴを印にする (管理まで並ぶと字のロゴでは収まらない) */
+  @media (max-width: 359.98px) {
+    nav a.button.logo {
+      width: var(--ui-btn-h);
+      padding: 0;
+    }
+    .mark {
+      display: block;
+    }
+    .word {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 
   /* いまいる場所は下線と主の色の太字。行は塗らない */
@@ -196,6 +321,8 @@
   /* ドラッグ&ドロップの案内は横幅に余裕のある画面だけ */
   .hint {
     display: none;
+    flex-shrink: 1;
+    min-width: 0;
     padding-inline: 0.5rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -205,13 +332,24 @@
     .hint {
       display: inline;
     }
+    /* 案内が縮むので、名前は割り振りで端数だけ削られないよう縮めない */
+    nav .who {
+      flex-shrink: 0;
+    }
   }
+  /* 長い名前は省略して 1 行に。部品を押し出さない */
   .who {
     display: none;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 12rem;
+    overflow: hidden;
     padding-inline: 0.5rem 0.625rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   @media (min-width: 640px) {
-    .who {
+    nav .who {
       display: inline;
     }
   }

@@ -95,7 +95,7 @@
 <button type="button" disabled={isGenerating} onclick={() => inputRef?.click()}>
   {#if isGenerating}
     <span class="spin"></span>
-    生成中
+    <span class="label">生成中</span>
     <span class="pct">{Math.floor(progress * 100)}%</span>
   {:else}
     <svg
@@ -131,8 +131,15 @@
     width: 1.125rem;
     height: 1.125rem;
   }
-  /* 狭い画面では＋の印だけ。名前は読み上げに残す */
-  @media (max-width: 479px) {
+  /*
+   * 狭い画面ではほかのアイコンと同じ 2.5rem の円。＋の印だけ、作っている
+   * あいだは数字だけにして幅を変えない。名前は読み上げに残す
+   */
+  @media (max-width: 559.98px) {
+    button {
+      width: var(--ui-btn-h);
+      padding: 0;
+    }
     .label {
       position: absolute;
       width: 1px;
@@ -140,6 +147,13 @@
       overflow: hidden;
       clip-path: inset(50%);
       white-space: nowrap;
+    }
+    .spin {
+      display: none;
+    }
+    button .pct {
+      min-width: 0;
+      font-size: var(--ui-text-xs);
     }
   }
   /* 数字でボタンの幅が揺れないよう、等幅で "100%" の幅を取っておく */
