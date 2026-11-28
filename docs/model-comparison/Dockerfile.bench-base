@@ -1,0 +1,8 @@
+FROM oven/bun:1.4.5
+WORKDIR /t
+RUN echo '{"name":"b","trustedDependencies":["openvino-node","onnxruntime-node"]}' > package.json \
+ && bun add onnxruntime-node@1.31.1 onnxruntime-web@1.31.1 @huggingface/transformers@4.3.2 openvino-node@2026.4.1
+ARG R=https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/6b7c523703ae26e39be4b03774966f8571c7f523
+ADD $R/config.json $R/preprocessor_config.json /hfjs/clip/
+ADD $R/onnx/vision_model_quantized.onnx $R/onnx/vision_model.onnx /hfjs/clip/onnx/
+RUN chmod -R a+r /hfjs && ls -la /hfjs/clip/onnx && ls node_modules
