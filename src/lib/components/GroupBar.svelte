@@ -52,18 +52,20 @@
 <style>
   /*
    * ヘッダーと同じ浮いた面 (形と色は +layout.svelte の変数)。ヘッダーの下に
-   * 同じ隙間を空けて貼り付く。左右は親の余白を戻してヘッダーの端にそろえる
+   * 少し空けて貼り付く。左右は親の余白を戻してヘッダーの端にそろえる
    */
   .sticky {
     position: sticky;
     z-index: 30;
-    top: calc(var(--ui-header-bottom) + var(--ui-header-top));
-    margin-top: var(--ui-header-top);
+    /* ヘッダーとの隙間は上の端の隙間の半分。同じでは間が空いて見えた */
+    top: calc(var(--ui-header-bottom) + var(--ui-header-top) / 2);
+    margin-top: calc(var(--ui-header-top) / 2);
     margin-inline: calc(var(--ui-header-inset) - var(--wrap-pad));
     border-radius: var(--ui-header-radius);
     background: var(--ui-float);
     box-shadow: var(--ui-shadow-pop);
-    padding: 0.375rem;
+    /* 上下は項目の 44px で足りるので空けない */
+    padding: 0 0.375rem;
     transition:
       background-color 240ms var(--ui-ease),
       box-shadow 240ms var(--ui-ease);
