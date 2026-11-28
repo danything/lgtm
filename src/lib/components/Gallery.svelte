@@ -128,10 +128,14 @@
     if (isGetting || isDone) return;
     isGetting = true;
     const started = generation;
+    // A row asks only for what is left below its cap, so it never runs past it.
+    const limit = strip
+      ? Math.min(PER_PAGE, STRIP_MAX - items.length)
+      : PER_PAGE;
     let page: File[];
     try {
       page = await api<File[]>(
-        `/lgtm/images?offset=${items.length}&limit=${PER_PAGE}&find=${find}&folder=${folderParam(folder)}&group=${group ?? ""}&scene=${scene ?? ""}`,
+        `/lgtm/images?offset=${items.length}&limit=${limit}&find=${find}&folder=${folderParam(folder)}&group=${group ?? ""}&scene=${scene ?? ""}`,
       );
     } catch (e) {
       // Stops here; scrolling back to the end tries again.
@@ -145,7 +149,7 @@
     // An upload meanwhile shifts rows down, so drop repeats of what we have.
     const have = new Set(items.map((f) => f.name));
     items = [...items, ...page.filter((f) => !have.has(f.name))];
-    isDone = page.length < PER_PAGE || (strip && items.length >= STRIP_MAX);
+    isDone = page.length < limit || (strip && items.length >= STRIP_MAX);
     isGetting = false;
     // Still intersecting after a short page fires nothing, so look again.
     if (!isDone && sentinel) {
