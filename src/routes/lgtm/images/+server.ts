@@ -3,6 +3,7 @@ import { json } from "@sveltejs/kit";
 import { parseFolder } from "#lib/folders.js";
 import { isGroup, isScene } from "#lib/groups.js";
 import { PER_PAGE } from "#lib/paging.js";
+import { parseQuery } from "#lib/search.js";
 import { get } from "#lib/server/lgtm.js";
 
 import type { RequestHandler } from "./$types";
@@ -21,10 +22,12 @@ export const GET: RequestHandler = ({ url, cookies }) => {
   const folder = parseFolder(url.searchParams.get("folder"));
   const group = url.searchParams.get("group");
   const scene = url.searchParams.get("scene");
+  const q = parseQuery(url.searchParams.get("q"));
   return json(
     get(offset, limit, find, cookies.get("key"), folder, {
       group: isGroup(group) ? group : undefined,
       scene: isScene(scene) ? scene : undefined,
+      q,
     }),
   );
 };

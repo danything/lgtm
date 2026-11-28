@@ -1,6 +1,12 @@
 import { type GroupKey, isGroup, isScene, type SceneKey } from "#lib/groups.js";
 import { FIRST_LIMIT, STRIP_LIMIT } from "#lib/paging.js";
-import { get, groupSections, sceneSections } from "#lib/server/lgtm.js";
+import { parseQuery } from "#lib/search.js";
+import {
+  get,
+  groupSections,
+  popularTags,
+  sceneSections,
+} from "#lib/server/lgtm.js";
 
 import type { PageServerLoad } from "./$types";
 
@@ -12,10 +18,14 @@ export const load: PageServerLoad = ({ cookies, url }) => {
   const sceneParam = url.searchParams.get("scene");
   const scene =
     group === "person" && isScene(sceneParam) ? sceneParam : undefined;
-  const groups = groupSections();
+  const q = parseQuery(url.searchParams.get("q"));
+  // A search counts only what it finds.
+  const groups = groupSections(q);
   // The top shows 人's scenes too, beside its row, so they are not hidden.
   const scenes =
-    group === "person" || group === undefined ? sceneSections() : [];
+    group === "person" || (group === undefined && q === undefined)
+      ? sceneSections(q)
+      : [];
   const base = {
     message: cookies.get("message"),
     wkey,
@@ -23,7 +33,33 @@ export const load: PageServerLoad = ({ cookies, url }) => {
     group,
     scenes,
     scene,
+    q,
+    found: undefined as number | undefined,
+    popular: [] as string[],
   };
+
+  // A search is one long gallery, best match first, in a group or scene if one
+  // is open.
+  if (q !== undefined) {
+    const found =
+      scene !== undefined
+        ? (scenes.find((s) => s.key === scene)?.count ?? 0)
+        : group !== undefined && group !== "all"
+          ? (groups.find((g) => g.key === group)?.count ?? 0)
+          : groups.reduce((n, g) => n + g.count, 0);
+    return {
+      ...base,
+      found,
+      // Words that do find something, for a search that found nothing.
+      popular: found === 0 ? popularTags(12) : [],
+      images: get(0, FIRST_LIMIT, false, wkey, undefined, {
+        group: group === "all" ? undefined : group,
+        scene,
+        q,
+      }),
+      rows: [],
+    };
+  }
   // The filter goes with the row so it can fetch more as it scrolls sideways.
   const strip = (
     filter: { group?: GroupKey; scene?: SceneKey },

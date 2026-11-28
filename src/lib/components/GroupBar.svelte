@@ -5,42 +5,62 @@
     SceneKey,
     SceneSection,
   } from "#lib/groups.js";
+  import { topHref } from "#lib/search.js";
 
   let {
     groups,
     group,
     scenes = [],
     scene,
+    q,
   }: {
     groups: GroupSection[];
     group: GroupKey | "all" | undefined;
     /** 人's scenes, shown as a second row while 人 is open. */
     scenes?: SceneSection[];
     scene?: SceneKey;
+    /** Words searched for: the chips then narrow what was found. */
+    q?: string;
   } = $props();
 </script>
 
 <!-- ヘッダーと同じ浮いた面。ヘッダーの下に貼り付いて残る -->
 <div class="sticky">
   <nav class="bar" aria-label="グループ">
-    <a class="chip" class:on={group === undefined} href="/">グループ別</a>
-    <a class="chip" class:on={group === "all"} href="/?group=all">すべて</a>
+    {#if q === undefined}
+      <a class="chip" class:on={group === undefined} href="/">グループ別</a>
+      <a class="chip" class:on={group === "all"} href="/?group=all">すべて</a>
+    {:else}
+      <!-- 検索の中で絞る。グループ別の段は検索には無い -->
+      <a
+        class="chip"
+        class:on={group === undefined || group === "all"}
+        href={topHref({ q })}>すべて</a
+      >
+    {/if}
     {#each groups as g (g.key)}
-      <a class="chip" class:on={group === g.key} href={`/?group=${g.key}`}>
+      <a
+        class="chip"
+        class:on={group === g.key}
+        href={topHref({ q, group: g.key })}
+      >
         {g.label}<span class="count">{g.count}</span>
       </a>
     {/each}
   </nav>
   {#if group === "person" && scenes.length > 0}
     <nav class="bar sub" aria-label="人の場面">
-      <a class="chip" class:on={scene === undefined} href="/?group=person"
-        >場面別</a
+      <a
+        class="chip"
+        class:on={scene === undefined}
+        href={topHref({ q, group: "person" })}
+        >{q === undefined ? "場面別" : "人のすべて"}</a
       >
       {#each scenes as s (s.key)}
         <a
           class="chip"
           class:on={scene === s.key}
-          href={`/?group=person&scene=${s.key}`}
+          href={topHref({ q, group: "person", scene: s.key })}
         >
           {s.label}<span class="count">{s.count}</span>
         </a>

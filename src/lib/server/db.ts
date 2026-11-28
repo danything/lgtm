@@ -72,6 +72,24 @@ const MIGRATIONS: ((db: DatabaseType) => void)[] = [
     db.run("ALTER TABLE lImage ADD COLUMN dupKey INTEGER");
     db.run("CREATE INDEX lImage_dupKey ON lImage(dupKey, createdAt)");
   },
+  (db) => {
+    // Search words, picked from the embedding (groups/tags.ts) and rewritten
+    // with the groups at every start. They go with their picture.
+    db.run(`
+			CREATE TABLE lImageTag (
+				tag TEXT NOT NULL,
+				imageId INTEGER NOT NULL,
+				score REAL NOT NULL,
+				PRIMARY KEY (tag, imageId)
+			) WITHOUT ROWID
+		`);
+    db.run("CREATE INDEX lImageTag_imageId ON lImageTag(imageId)");
+    db.run(`
+			CREATE TRIGGER lImage_untag AFTER DELETE ON lImage BEGIN
+				DELETE FROM lImageTag WHERE imageId = old.id;
+			END
+		`);
+  },
 ];
 
 /** Immediate, so two pods starting together cannot both run the same step. */

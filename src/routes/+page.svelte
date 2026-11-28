@@ -4,6 +4,7 @@
   import ErrorAlert from "#lib/components/ErrorAlert.svelte";
   import Gallery from "#lib/components/Gallery.svelte";
   import GroupBar from "#lib/components/GroupBar.svelte";
+  import { topHref } from "#lib/search.js";
 
   import type { PageProps } from "./$types";
 
@@ -51,10 +52,32 @@
     group={data.group}
     scenes={data.scenes}
     scene={data.scene}
+    q={data.q}
   />
   <!-- 帯の上は帯が塗るので、知らせは帯の下に置く -->
   {#if data.message !== undefined}
     <ErrorAlert>{data.message}</ErrorAlert>
+  {/if}
+  {#if data.q !== undefined}
+    <!-- 検索の結果。何に当たったかと数を先に言う -->
+    <div class="found">
+      <h2>「{data.q}」<span class="count">{data.found}枚</span></h2>
+      {#if data.found === 0}
+        <p class="muted small">
+          見つかりませんでした。画像に付けた言葉
+          (猫・ラーメン・ピース・夜景など) で探せます。
+        </p>
+        {#if data.popular.length > 0}
+          <nav class="subs" aria-label="よく付いている言葉">
+            {#each data.popular as word (word)}
+              <a class="sub" href={topHref({ q: word })}
+                ><span class="pill">{word}</span></a
+              >
+            {/each}
+          </nav>
+        {/if}
+      {/if}
+    </div>
   {/if}
   {#if data.rows.length > 0}
     <!-- 中身で分けた段。上げたばかりの画像はグループが付く前なので、新着を先に置く -->
@@ -92,13 +115,14 @@
       </section>
     {/each}
   {:else}
-    {#key `${data.group}/${data.scene}`}
+    {#key `${data.group}/${data.scene}/${data.q}`}
       <Gallery
         fileNameList={data.images}
         userKey={data.wkey}
         find={false}
         group={data.group === "all" ? undefined : data.group}
         scene={data.scene}
+        q={data.q}
       />
     {/key}
   {/if}
@@ -190,6 +214,18 @@
   }
   .pill .count {
     font-size: var(--ui-text-xs);
+  }
+  /* 検索の見出し。段の見出しと同じ大きさで、帯との間をあける */
+  .found {
+    display: grid;
+    gap: 0.5rem;
+    margin-block: 0.75rem;
+  }
+  .found p {
+    margin: 0;
+  }
+  .found .subs {
+    margin-top: 0;
   }
   /* 押せる高さは 44px。見出しの行の高さもこれで決まる */
   .more {
