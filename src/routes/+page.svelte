@@ -84,10 +84,23 @@
     {#each data.rows as r (r.key)}
       <section aria-labelledby={`g-${r.key}`}>
         <div class="head">
+          <!-- 見出しそのものがグループのページへの入口。押せると分かるよう矢印を添える -->
           <h2 id={`g-${r.key}`}>
-            {r.label}{#if r.count !== undefined}<span class="count"
-                >{r.count}</span
-              >{/if}
+            <a class="title" href={r.more}
+              >{r.label}{#if r.count !== undefined}<span class="count"
+                  >{r.count}</span
+                >{/if}<svg
+                class="chev"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg
+              ></a
+            >
           </h2>
           <a class="more" href={r.more}>もっと見る</a>
         </div>
@@ -109,7 +122,6 @@
           find={false}
           group={r.filter.group}
           scene={r.filter.scene}
-          more={r.more}
           strip
         />
       </section>
@@ -159,6 +171,32 @@
     gap: 0.5rem;
     margin: 0;
     font-size: 1rem;
+  }
+  /* 押せる高さは 44px。乗せると地が付き、矢印が少し右へ寄る */
+  .title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    margin-inline: -0.5rem;
+    border-radius: var(--ui-radius-full);
+    padding-inline: 0.5rem 0.25rem;
+    color: var(--ui-fg);
+    text-decoration: none;
+    transition: background-color var(--ui-duration) var(--ui-ease);
+  }
+  .title:hover {
+    background: var(--ui-hover-soft);
+  }
+  .chev {
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-inline-start: -0.25rem;
+    color: var(--ui-muted);
+    transition: transform var(--ui-duration) var(--ui-ease);
+  }
+  .title:hover .chev {
+    transform: translateX(2px);
   }
   .count {
     color: var(--ui-muted);

@@ -41,7 +41,6 @@
     scene,
     q,
     strip = false,
-    more,
   }: {
     fileNameList: File[];
     userKey?: string;
@@ -59,8 +58,6 @@
     q?: string;
     /** One row that scrolls sideways and fetches more as it nears its end. */
     strip?: boolean;
-    /** Where a row's last tile leads: the rest of it, on its own page. */
-    more?: string;
   } = $props();
 
   let moveDialog: MoveDialog | undefined = $state();
@@ -291,8 +288,6 @@
   {/each}
   {#if strip}
     <div class="end" bind:this={sentinel}></div>
-    <!-- 段の終わり。続きはグループのページで -->
-    {#if more}<a class="tile more" href={more}>もっと見る</a>{/if}
   {/if}
 </div>
 {#if !strip}<div bind:this={sentinel}></div>{/if}
@@ -371,22 +366,6 @@
   .end {
     flex: 0 0 1px;
     margin-inline-start: -0.5rem;
-  }
-  /* 段の終わりのタイル。地の色の面に字だけ */
-  .tile.more {
-    display: grid;
-    width: 7rem;
-    place-items: center;
-    color: var(--ui-fg);
-    font-size: var(--ui-text-sm);
-    text-decoration: none;
-    transition: background-color var(--ui-duration) var(--ui-ease);
-  }
-  .tile.more::before {
-    display: none;
-  }
-  .tile.more:hover {
-    background: var(--ui-line);
   }
   .tile {
     position: relative;
