@@ -68,10 +68,25 @@
           </h2>
           <a class="more" href={r.more}>もっと見る</a>
         </div>
+        <!-- 下にあるサブジャンル (人の場面)。見出しのすぐ下に並べて、あると分かるようにする -->
+        {#if r.subs.length > 0}
+          <nav class="subs" aria-label={`${r.label}の場面`}>
+            {#each r.subs as s (s.key)}
+              <a class="sub" href={`/?group=${r.key}&scene=${s.key}`}
+                ><span class="pill"
+                  >{s.label}<span class="count">{s.count}</span></span
+                ></a
+              >
+            {/each}
+          </nav>
+        {/if}
         <Gallery
           fileNameList={r.images}
           userKey={data.wkey}
           find={false}
+          group={r.filter.group}
+          scene={r.filter.scene}
+          more={r.more}
           strip
         />
       </section>
@@ -126,6 +141,55 @@
     font-size: var(--ui-text-sm);
     font-weight: 400;
     font-variant-numeric: tabular-nums;
+  }
+  /*
+   * サブジャンル (人の場面) への入口。帯 (GroupBar) の項目と違い、ここは段の
+   * 見出しに添えるので、押せると分かる淡い地のカプセルにする。押せる高さは
+   * 44px のまま、見えるカプセルは 2rem。狭い画面では折り返さず、段と同じく
+   * 画面の端まで横に流す
+   */
+  .subs {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: -0.5rem calc(-1 * var(--wrap-pad)) 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-inline: var(--wrap-pad);
+  }
+  .sub {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    height: 2.75rem;
+    color: var(--ui-fg);
+    font-size: var(--ui-text-sm);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 2rem;
+    border-radius: var(--ui-radius-full);
+    background: var(--ui-subtle);
+    padding-inline: 0.75rem;
+    transition: background-color var(--ui-duration) var(--ui-ease);
+  }
+  .sub:hover .pill {
+    background: var(--ui-line);
+  }
+  /* 焦点の線は見えるカプセルに沿わせる */
+  .sub:focus-visible {
+    outline: none;
+  }
+  .sub:focus-visible .pill {
+    outline: 2px solid var(--pico-primary);
+    outline-offset: 2px;
+  }
+  .pill .count {
+    font-size: var(--ui-text-xs);
   }
   /* 押せる高さは 44px。見出しの行の高さもこれで決まる */
   .more {

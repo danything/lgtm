@@ -1,4 +1,4 @@
-import { type GroupKey, isGroup, isScene } from "#lib/groups.js";
+import { type GroupKey, isGroup, isScene, type SceneKey } from "#lib/groups.js";
 import { FIRST_LIMIT, STRIP_LIMIT } from "#lib/paging.js";
 import { get, groupSections, sceneSections } from "#lib/server/lgtm.js";
 
@@ -13,7 +13,9 @@ export const load: PageServerLoad = ({ cookies, url }) => {
   const scene =
     group === "person" && isScene(sceneParam) ? sceneParam : undefined;
   const groups = groupSections();
-  const scenes = group === "person" ? sceneSections() : [];
+  // The top shows 人's scenes too, beside its row, so they are not hidden.
+  const scenes =
+    group === "person" || group === undefined ? sceneSections() : [];
   const base = {
     message: cookies.get("message"),
     wkey,
@@ -22,8 +24,13 @@ export const load: PageServerLoad = ({ cookies, url }) => {
     scenes,
     scene,
   };
-  const strip = (filter: Parameters<typeof get>[5], more: string) => ({
+  // The filter goes with the row so it can fetch more as it scrolls sideways.
+  const strip = (
+    filter: { group?: GroupKey; scene?: SceneKey },
+    more: string,
+  ) => ({
     images: get(0, STRIP_LIMIT, false, wkey, undefined, filter),
+    filter,
     more,
   });
 
@@ -34,6 +41,7 @@ export const load: PageServerLoad = ({ cookies, url }) => {
       images: [],
       rows: scenes.map((s) => ({
         ...s,
+        subs: [],
         ...strip({ group, scene: s.key }, `/?group=person&scene=${s.key}`),
       })),
     };
@@ -56,10 +64,12 @@ export const load: PageServerLoad = ({ cookies, url }) => {
         key: "all",
         label: "新着",
         count: undefined,
+        subs: [],
         ...strip({}, "/?group=all"),
       },
       ...groups.map((g) => ({
         ...g,
+        subs: g.key === "person" ? scenes : [],
         ...strip({ group: g.key }, `/?group=${g.key}`),
       })),
     ],
