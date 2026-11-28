@@ -4,7 +4,12 @@ import { mkdirSync } from "node:fs";
 import db from "../db";
 import { create, deleteFile, get, groupSections, popularTags } from "../lgtm";
 import { useScratchDir, webpFile } from "../testing";
-import { groupLater, startGrouping, useEmbedder } from "./index";
+import {
+  forgetTagStats,
+  groupLater,
+  startGrouping,
+  useEmbedder,
+} from "./index";
 import {
   cosines,
   fold,
@@ -83,6 +88,8 @@ describe("search", () => {
   beforeEach(async () => {
     await groupLater([]);
     db().run("DELETE FROM lImage");
+    // Another file's start leaves stats from its own pictures.
+    forgetTagStats();
   });
 
   /** Uploads one picture per word, each its own size, tagged as that word. */
@@ -125,6 +132,28 @@ describe("search", () => {
     await startGrouping();
     expect(search("ラーメン")).toHaveLength(1);
     expect(popularTags(20)).toEqual(expect.arrayContaining(["ラーメン", "猫"]));
+  });
+
+  test("a picture deleted while a start retags gets no tags back", async () => {
+    // Deleted some turns into the start: one of them falls after it has read
+    // the embeddings and before it writes the tags.
+    for (let turns = 0; turns < 6; turns++) {
+      db().run("DELETE FROM lImage");
+      const names = await upload(["ラーメン", "猫"]);
+      useEmbedder(() => Promise.reject(new Error("not called")));
+      const start = startGrouping();
+      for (let i = 0; i < turns; i++)
+        await new Promise((resolve) => setTimeout(resolve));
+      expect(deleteFile(names[0], "u1")).toBe(true);
+      await start;
+    }
+    expect(
+      db()
+        .query(
+          "SELECT COUNT(*) AS n FROM lImageTag WHERE imageId NOT IN (SELECT id FROM lImage)",
+        )
+        .get(),
+    ).toEqual({ n: 0 });
   });
 
   test("a deleted picture takes its tags with it", async () => {

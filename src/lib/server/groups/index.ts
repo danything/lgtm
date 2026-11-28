@@ -27,14 +27,21 @@ function classify(e: Float32Array) {
 // tagged against these until the next one.
 let tagStats: TagStats | undefined;
 
+/** For tests: forgets the last start's stats, as before any start. */
+export function forgetTagStats(): void {
+  tagStats = undefined;
+}
+
 /** Replaces the picture's tags; run inside a transaction. */
 function writeTags(id: number, e: Float32Array): void {
   db().run("DELETE FROM lImageTag WHERE imageId = ?", [id]);
+  // Only onto a picture still there: one deleted since its embedding was read
+  // (retag works from a snapshot) has had its tags cleared by the trigger.
   const insert = db().query(
-    "INSERT INTO lImageTag (tag, imageId, score) VALUES (?, ?, ?)",
+    "INSERT INTO lImageTag (tag, imageId, score) SELECT ?, id, ? FROM lImage WHERE id = ?",
   );
   for (const { tag, score } of pickTags(e, tagStats))
-    insert.run(tag, id, score);
+    insert.run(tag, score, id);
 }
 
 /**
@@ -135,9 +142,9 @@ export function groupLater(fileNames: string[]): Promise<void> {
 }
 
 /**
- * Regroups and retags every stored embedding (prompts may have changed) and keys the
- * copies not keyed yet, then queues the pictures that have no embedding: new
- * since the last start, or from before groups.
+ * Regroups and retags every stored embedding (prompts may have changed) and
+ * keys the copies not keyed yet, then queues the pictures that have no
+ * embedding: new since the last start, or from before groups.
  */
 export async function startGrouping(): Promise<void> {
   // After the server is listening: the first run keys every picture.
