@@ -8,4 +8,6 @@ ignorePatterns = [
   # scripts/centroids.ts が書く 512 次元のベクトル。1 行で置く
   "src/lib/server/groups/centroids.json",
   "src/lib/server/groups/scene-centroids.json",
+  # scripts/tags.ts が書くタグの語彙と 8 bit のベクトル。1 行で置く
+  "src/lib/server/groups/tags.json",
 ]

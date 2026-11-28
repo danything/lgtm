@@ -10,6 +10,7 @@ import {
 import { MAX_SIDE, MAX_UPLOAD_BYTES, mb } from "#lib/limits.js";
 
 import db from "./db";
+import { tagsFor } from "./groups/tags";
 import { HttpError } from "./http";
 import { imagePath, removeImage, writeImage } from "./storage";
 import { stripMetadata, webpSize } from "./webp";
@@ -123,6 +124,28 @@ export async function backfillImageSizes(): Promise<void> {
   }
 }
 
+/** What narrows the top page: a group, a scene of 人, words to search. */
+export type TopFilter = { group?: GroupKey; scene?: SceneKey; q?: string };
+
+const marks = (xs: unknown[]) => xs.map(() => "?").join(",");
+
+/**
+ * The conditions for pictures a search finds: a tag for every word of it.
+ * Undefined when some word is no tag, so nothing can match.
+ */
+function searchWhere(q: string) {
+  const terms = tagsFor(q);
+  if (terms.length === 0 || terms.some((t) => t.length === 0)) return undefined;
+  return {
+    terms,
+    where: terms.map(
+      (tags) =>
+        `id IN (SELECT imageId FROM lImageTag WHERE tag IN (${marks(tags)}))`,
+    ),
+    params: terms.flat(),
+  };
+}
+
 // The top page shows one picture per shot: the newest of its dupKey.
 const NEWEST_COPY = `(dupKey IS NULL OR id = (SELECT d.id FROM lImage d
   WHERE d.dupKey = lImage.dupKey ORDER BY d.createdAt DESC, d.id DESC LIMIT 1))`;
@@ -139,7 +162,7 @@ export function get(
   find: boolean,
   userKey?: string,
   folder?: FolderFilter,
-  top: { group?: GroupKey; scene?: SceneKey } = {},
+  top: TopFilter = {},
 ) {
   type Row = {
     fileName: string;
@@ -169,13 +192,25 @@ export function get(
       params.push(top.scene);
     }
   }
+  // A search ranks by how well the tags fit, newest first among equals.
+  let order = "";
+  const orderParams: string[] = [];
+  if (!find && top.q !== undefined) {
+    const s = searchWhere(top.q);
+    if (!s) return [];
+    where.push(...s.where);
+    params.push(...s.params);
+    const all = [...new Set(s.terms.flat())];
+    order = `(SELECT SUM(score) FROM lImageTag t WHERE t.imageId = lImage.id AND t.tag IN (${marks(all)})) DESC, `;
+    orderParams.push(...all);
+  }
   const rows = db()
     .query<Row, (string | number)[]>(
       `SELECT fileName, userKey, width, height, folderId FROM lImage
 			 ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-			 ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?`,
+			 ORDER BY ${order}createdAt DESC, id DESC LIMIT ? OFFSET ?`,
     )
-    .all(...params, limit, offset);
+    .all(...params, ...orderParams, limit, offset);
 
   return rows.map((image) => ({
     name: image.fileName,
@@ -188,14 +223,17 @@ export function get(
 }
 
 /** The groups with pictures in them, biggest first and その他 last. */
-export function groupSections(): GroupSection[] {
+export function groupSections(q?: string): GroupSection[] {
+  const s = q === undefined ? { where: [], params: [] } : searchWhere(q);
+  if (!s) return [];
   const counts = new Map(
     db()
-      .query<{ grp: string; count: number }, []>(
+      .query<{ grp: string; count: number }, string[]>(
         `SELECT grp, COUNT(*) AS count FROM lImage
-         WHERE grp IS NOT NULL AND ${NEWEST_COPY} GROUP BY grp`,
+         WHERE ${["grp IS NOT NULL", NEWEST_COPY, ...s.where].join(" AND ")}
+         GROUP BY grp`,
       )
-      .all()
+      .all(...s.params)
       .map((r) => [r.grp, r.count]),
   );
   return GROUPS.map(({ key, label }) => ({
@@ -212,15 +250,17 @@ export function groupSections(): GroupSection[] {
 }
 
 /** 人's scenes with pictures in them, biggest first and そのほか last. */
-export function sceneSections(): SceneSection[] {
+export function sceneSections(q?: string): SceneSection[] {
+  const s = q === undefined ? { where: [], params: [] } : searchWhere(q);
+  if (!s) return [];
   const counts = new Map(
     db()
-      .query<{ scene: string; count: number }, []>(
+      .query<{ scene: string; count: number }, string[]>(
         `SELECT scene, COUNT(*) AS count FROM lImage
-         WHERE grp = 'person' AND scene IS NOT NULL AND ${NEWEST_COPY}
+         WHERE ${["grp = 'person'", "scene IS NOT NULL", NEWEST_COPY, ...s.where].join(" AND ")}
          GROUP BY scene`,
       )
-      .all()
+      .all(...s.params)
       .map((r) => [r.scene, r.count]),
   );
   return SCENES.map(({ key, label }) => ({
@@ -234,4 +274,15 @@ export function sceneSections(): SceneSection[] {
         Number(a.key === "rest") - Number(b.key === "rest") ||
         b.count - a.count,
     );
+}
+
+/** The tags on the most pictures shown on the top page. */
+export function popularTags(limit: number): string[] {
+  return db()
+    .query<{ tag: string }, [number]>(
+      `SELECT tag FROM lImageTag JOIN lImage ON lImage.id = imageId
+       WHERE ${NEWEST_COPY} GROUP BY tag ORDER BY COUNT(*) DESC, tag LIMIT ?`,
+    )
+    .all(limit)
+    .map((r) => r.tag);
 }

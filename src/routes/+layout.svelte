@@ -3,6 +3,7 @@
   import { afterNavigate, beforeNavigate } from "$app/navigation";
   import { page, updated } from "$app/state";
 
+  import SearchBox from "#lib/components/SearchBox.svelte";
   import SignInButton from "#lib/components/SignInButton.svelte";
   import ThemeToggle from "#lib/components/ThemeToggle.svelte";
   import Toast from "#lib/components/Toast.svelte";
@@ -77,6 +78,7 @@
     {/if}
   </span>
   <div class="grow"></div>
+  <SearchBox />
   <ThemeToggle initial={data.theme} />
   <!-- 管理は名前より左 (右端だと人によって名前の位置が変わる) -->
   {#if data.isAdmin}

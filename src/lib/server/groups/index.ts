@@ -1,6 +1,7 @@
 import db from "../db";
 import { imagePath } from "../storage";
 import { cosine, pickGroup, pickScene, SAME_SHOT } from "./score";
+import { cosines, pickTags, StatsBuilder, type TagStats } from "./tags";
 
 type Embed = (webp: Uint8Array) => Promise<Float32Array>;
 
@@ -20,6 +21,27 @@ const floats = (blob: Uint8Array) =>
 function classify(e: Float32Array) {
   const grp = pickGroup(e);
   return { grp, scene: grp === "person" ? pickScene(e) : null };
+}
+
+// How tags score across the pictures, as of the last start; a new picture is
+// tagged against these until the next one.
+let tagStats: TagStats | undefined;
+
+/** For tests: forgets the last start's stats, as before any start. */
+export function forgetTagStats(): void {
+  tagStats = undefined;
+}
+
+/** Replaces the picture's tags; run inside a transaction. */
+function writeTags(id: number, e: Float32Array): void {
+  db().run("DELETE FROM lImageTag WHERE imageId = ?", [id]);
+  // Only onto a picture still there: one deleted since its embedding was read
+  // (retag works from a snapshot) has had its tags cleared by the trigger.
+  const insert = db().query(
+    "INSERT INTO lImageTag (tag, imageId, score) SELECT ?, id, ? FROM lImage WHERE id = ?",
+  );
+  for (const { tag, score } of pickTags(e, tagStats))
+    insert.run(tag, score, id);
 }
 
 /**
@@ -69,19 +91,26 @@ let done: Promise<void> = Promise.resolve();
 
 async function work(): Promise<void> {
   try {
-    const update = db().prepare(
-      "UPDATE lImage SET grp = ?, scene = ?, embedding = ? WHERE fileName = ?",
+    const update = db().prepare<
+      { id: number },
+      [string, string | null, Uint8Array, string]
+    >(
+      "UPDATE lImage SET grp = ?, scene = ?, embedding = ? WHERE fileName = ? RETURNING id",
     );
     for (let name = queue.shift(); name; name = queue.shift()) {
       try {
         const e = await embed(await Bun.file(imagePath(name)).bytes());
         const { grp, scene } = classify(e);
-        update.run(
-          grp,
-          scene,
-          new Uint8Array(e.buffer, e.byteOffset, e.byteLength),
-          name,
-        );
+        db().transaction(() => {
+          const row = update.get(
+            grp,
+            scene,
+            new Uint8Array(e.buffer, e.byteOffset, e.byteLength),
+            name,
+          );
+          // Deleted while the model looked at it.
+          if (row) writeTags(row.id, e);
+        })();
         markDuplicate(name);
       } catch (e) {
         // Left ungrouped; the next start tries again. Without the model there
@@ -113,9 +142,9 @@ export function groupLater(fileNames: string[]): Promise<void> {
 }
 
 /**
- * Regroups every stored embedding (prompts may have changed) and keys the
- * copies not keyed yet, then queues the pictures that have no embedding: new
- * since the last start, or from before groups.
+ * Regroups and retags every stored embedding (prompts may have changed) and
+ * keys the copies not keyed yet, then queues the pictures that have no
+ * embedding: new since the last start, or from before groups.
  */
 export async function startGrouping(): Promise<void> {
   // After the server is listening: the first run keys every picture.
@@ -157,9 +186,36 @@ export async function startGrouping(): Promise<void> {
       update.run(grp, scene, s.dupKey, s.id);
     }
   })();
+  await retag(shots);
   // Newest first, so the top page fills in from where people look.
   const missing = rows.filter((r) => !r.embedding).map((r) => r.fileName);
   await groupLater(missing.reverse());
+}
+
+// Tagging takes about 0.25ms a picture (0.4s for 1,650); in slices, with a
+// turn of the event loop between, page requests are not held up behind it.
+const SLICE = 100;
+const nextTurn = () => new Promise((resolve) => setTimeout(resolve));
+
+/**
+ * Every picture's tags again, as the vocabulary may have changed: first how
+ * each tag scores across them all, then each picture against that. Search
+ * keeps working throughout, on the old tags until a picture's new ones land;
+ * a word taken out of the vocabulary goes with them.
+ */
+async function retag(shots: { id: number; e: Float32Array }[]): Promise<void> {
+  const stats = new StatsBuilder();
+  for (let i = 0; i < shots.length; i += SLICE) {
+    for (const s of shots.slice(i, i + SLICE)) stats.add(cosines(s.e));
+    await nextTurn();
+  }
+  tagStats = stats.done();
+  for (let i = 0; i < shots.length; i += SLICE) {
+    db().transaction(() => {
+      for (const s of shots.slice(i, i + SLICE)) writeTags(s.id, s.e);
+    })();
+    await nextTurn();
+  }
 }
 
 /**

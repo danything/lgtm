@@ -39,6 +39,7 @@
     empty,
     group,
     scene,
+    q,
     strip = false,
   }: {
     fileNameList: File[];
@@ -53,6 +54,8 @@
     /** Narrows the top page to one group. */
     group?: GroupKey;
     scene?: SceneKey;
+    /** Words searched for: the tiles are the best matches first. */
+    q?: string;
     /** One row that scrolls sideways and fetches more as it nears its end. */
     strip?: boolean;
   } = $props();
@@ -132,7 +135,7 @@
     let page: File[];
     try {
       page = await api<File[]>(
-        `/lgtm/images?offset=${items.length}&limit=${limit}&find=${find}&folder=${folderParam(folder)}&group=${group ?? ""}&scene=${scene ?? ""}`,
+        `/lgtm/images?offset=${items.length}&limit=${limit}&find=${find}&folder=${folderParam(folder)}&group=${group ?? ""}&scene=${scene ?? ""}&q=${encodeURIComponent(q ?? "")}`,
       );
     } catch (e) {
       // Stops here; scrolling back to the end tries again.
