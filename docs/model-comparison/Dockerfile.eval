@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.15-slim
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
  && pip install --no-cache-dir open_clip_torch timm transformers onnx onnxruntime onnxscript huggingface_hub numpy einops pillow \
  && pip freeze | grep -iE '^(torch|open.clip|timm|transformers|onnx|onnxruntime|huggingface)' > /versions.txt
