@@ -29,7 +29,7 @@ onnxruntime-node + CLIP ViT-B/32 (Xenova の 8 bit) を選びました。ここ�
 - 8 bit は onnxruntime の動的量子化 (重み uint8)。今のモデルは Xenova が配っている 8 bit のファイル
 - 版: Bun 1.4.5 (distroless)・onnxruntime-node/web 1.31.1・@huggingface/transformers 4.3.2・openvino-node 2026.4.1・
   @tensorflow/tfjs-node 4.22.0・candle 0.11.1 (Rust 1.100.0)・Python 側は onnxruntime 1.32.0・open_clip 4.2.2・transformers 5.24.1
-- スクリプトは [`model-comparison/`](model-comparison/) (画像・名前・正解の一覧はリポジトリに入れていません)
+- スクリプトは [`docs/model-comparison/` (078a159 の時点)](https://github.com/danything/lgtm/tree/078a1599b0e39a3c786732574ebe8387d0dd2a67/docs/model-comparison)。測り直すときだけ使うので、リポジトリからは外しました (画像・名前・正解の一覧はリポジトリに入れていません)
 
 **今のモデルに有利な点**: グループの文 (`scripts/centroids.ts`) は今のモデルで調整したもので、ほかのモデルに
 合わせ直してはいません。重複の 45 組も、今のモデルの値で選んだ組です。そのため「調整 209 枚」と「重複」は
