@@ -4,5 +4,12 @@ export const FIRST_LIMIT = 12;
 /** Tiles per later fetch. The server caps at it and a shorter answer means the end. */
 export const PER_PAGE = 30;
 
-/** Tiles in each row of the top page's groups. */
-export const STRIP_LIMIT = 10;
+/**
+ * Tiles each row of the top page starts with: enough to run past the right
+ * edge of a wide screen (about 2,400px of portrait shots). A row fetches more
+ * as it nears its end; ten stopped short of a 1,530px window.
+ */
+export const STRIP_LIMIT = 20;
+
+/** A row stops fetching here and leaves the rest to its own page. */
+export const STRIP_MAX = 80;

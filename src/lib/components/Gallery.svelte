@@ -15,7 +15,12 @@
   import { copyText, lgtmImgTag } from "#lib/clipboard.js";
   import { type Folder, type FolderFilter, folderParam } from "#lib/folders.js";
   import type { GroupKey, SceneKey } from "#lib/groups.js";
-  import { FIRST_LIMIT, PER_PAGE } from "#lib/paging.js";
+  import {
+    FIRST_LIMIT,
+    PER_PAGE,
+    STRIP_LIMIT,
+    STRIP_MAX,
+  } from "#lib/paging.js";
   import { setError } from "#lib/stores/toast.svelte.js";
 
   import CopyButton from "./CopyButton.svelte";
@@ -35,6 +40,7 @@
     group,
     scene,
     strip = false,
+    more,
   }: {
     fileNameList: File[];
     userKey?: string;
@@ -48,8 +54,10 @@
     /** Narrows the top page to one group. */
     group?: GroupKey;
     scene?: SceneKey;
-    /** One scrolling row of what it was given, loading no more. */
+    /** One row that scrolls sideways and fetches more as it nears its end. */
     strip?: boolean;
+    /** Where a row's last tile leads: the rest of it, on its own page. */
+    more?: string;
   } = $props();
 
   let moveDialog: MoveDialog | undefined = $state();
@@ -75,6 +83,7 @@
   let generation = 0;
   let isDone = false;
   let sentinel: HTMLDivElement | undefined = $state();
+  let tiles: HTMLDivElement | undefined = $state();
   let diaImage = $state<File>();
   // The tile just copied, which shows a tick for a moment.
   let copied = $state<string>();
@@ -136,7 +145,7 @@
     // An upload meanwhile shifts rows down, so drop repeats of what we have.
     const have = new Set(items.map((f) => f.name));
     items = [...items, ...page.filter((f) => !have.has(f.name))];
-    isDone = page.length < PER_PAGE;
+    isDone = page.length < PER_PAGE || (strip && items.length >= STRIP_MAX);
     isGetting = false;
     // Still intersecting after a short page fires nothing, so look again.
     if (!isDone && sentinel) {
@@ -149,14 +158,17 @@
     items = [...fileNameList];
     generation += 1;
     isGetting = false;
-    isDone = fileNameList.length < FIRST_LIMIT;
-    if (!sentinel || strip) return;
-    // Starts 800px early; at 300px a quick scroll outran the fetch.
+    isDone = fileNameList.length < (strip ? STRIP_LIMIT : FIRST_LIMIT);
+    if (!sentinel) return;
+    // Starts 800px early; at 300px a quick scroll outran the fetch. A row
+    // watches its own sideways scroll, which the window's margin cannot reach.
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) loadMore(observer);
       },
-      { rootMargin: "0px 0px 800px 0px" },
+      strip
+        ? { root: tiles, rootMargin: "0px 800px 0px 0px" }
+        : { rootMargin: "0px 0px 800px 0px" },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -167,7 +179,7 @@
   {@render empty?.()}
 {/if}
 <!-- overflow は切らない (端のタイルのホバーの拡大が欠ける) -->
-<div class="tiles" class:strip>
+<div class="tiles" class:strip bind:this={tiles}>
   {#each items as file, i (file.name)}
     <!-- The tile cannot be a <button>: the overlay buttons inside it would nest. -->
     <!-- --i staggers the entrance, restarting every 12 for appended pages. -->
@@ -270,6 +282,11 @@
       </div>
     </div>
   {/each}
+  {#if strip}
+    <div class="end" bind:this={sentinel}></div>
+    <!-- 段の終わり。続きはグループのページで -->
+    {#if more}<a class="tile more" href={more}>もっと見る</a>{/if}
+  {/if}
 </div>
 {#if !strip}<div bind:this={sentinel}></div>{/if}
 {#if folders}
@@ -324,19 +341,45 @@
     /* 上の帯との間もタイル同士の間と同じ幅にする */
     padding-block: 0.5rem;
   }
-  /* トップのグループの段。横に流し、端で止まる */
+  /*
+   * トップのグループの段。横に流し、続きは端に近づくと読む。左右は親の余白
+   * (--wrap-pad) を戻して画面の端まで流し、止まる位置と頭は見出しにそろえる
+   */
   .tiles.strip {
     flex-wrap: nowrap;
+    margin-inline: calc(-1 * var(--wrap-pad, 0px));
     overflow-x: auto;
     overscroll-behavior-x: contain;
+    scroll-padding-inline: var(--wrap-pad, 0px);
     scroll-snap-type: x proximity;
     scrollbar-width: thin;
-    padding-block: 0 0.5rem;
+    padding: 0 var(--wrap-pad, 0px) 0.5rem;
   }
   .strip .tile {
     flex: 0 0 auto;
     height: 9.5rem;
     scroll-snap-align: start;
+  }
+  /* 続きを読む合図。幅は無いのと同じ */
+  .end {
+    flex: 0 0 1px;
+    margin-inline-start: -0.5rem;
+  }
+  /* 段の終わりのタイル。地の色の面に字だけ */
+  .tile.more {
+    display: grid;
+    width: 7rem;
+    place-items: center;
+    color: var(--ui-fg);
+    font-size: var(--ui-text-sm);
+    text-decoration: none;
+    transition: background-color var(--ui-duration) var(--ui-ease);
+  }
+  .tile.more::before {
+    display: none;
+  }
+  .tile.more:hover {
+    background: var(--ui-line);
   }
   .tile {
     position: relative;
