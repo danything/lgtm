@@ -1,4 +1,4 @@
-const w = new Worker("/t/wk.ts");
+const w = new Worker("/t/worker.ts");
 await new Promise((r) => (w.onmessage = r));
 const x = new Float32Array(3 * 224 * 224).fill(0.1);
 const ts: number[] = [],

@@ -1,6 +1,9 @@
 // bun bench.ts <lib> <model.onnx> [size]
 // One thread, one picture at a time: median ms, the longest the event loop
 // was held (a 5ms timer firing late), RSS, and agreement with onnxruntime-node.
+// Run ort-node first for each model: it writes the reference the others are
+// compared against (/w/res/bench-ref-<file>.json). Image: Dockerfile.bench,
+// built on Dockerfile.bench-base tagged mc-bench.
 import {
   existsSync,
   openSync,

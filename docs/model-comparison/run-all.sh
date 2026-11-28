@@ -26,3 +26,5 @@ jina-clip-v1 jina
 nomic-v15 nomic
 L
 # Then, with nothing else running: speed.py, stats.py, table.py (same mounts).
+# Libraries (Dockerfile.bench as mc-bench-dl): for each model file, ort-node
+# first, then ort-web, transformers, openvino; bun worker-main.ts; bun tfjs.ts.

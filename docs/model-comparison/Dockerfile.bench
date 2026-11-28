@@ -7,7 +7,7 @@ FROM oven/bun:1.4.5-distroless
 COPY --from=b /t /t
 COPY --from=b /hfjs /hfjs
 COPY --from=b /lib-extra/ /usr/lib/x86_64-linux-gnu/
-COPY bench.ts tf.ts /t/
+COPY bench.ts tfjs.ts worker.ts worker-main.ts /t/
 WORKDIR /t
 ENV ORT_DISABLE_TELEMETRY=1
 ENTRYPOINT ["/usr/local/bin/bun"]
